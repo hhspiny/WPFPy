@@ -11,9 +11,7 @@
 #    Application().Run(MyWindow())
 
 import WPFPyBase
-from System import TimeSpan, Windows
-from System.Threading import Thread
-
+from System import TimeSpan, Windows, Threading
 
 class WPFPyFrameWork(WPFPyBase.WPFPyBase):
     def __init__(self, block=True):
@@ -50,11 +48,13 @@ class WPFPyFrameWork(WPFPyBase.WPFPyBase):
         self.SendToUIThread(delegate)
         return self.ret
     
-
+def run():
+    w = WPFPyBase.WPFPyWindow("WPFPyFrameWork.xaml")
+    Windows.Application().Run()
 
 if __name__ == "__main__":
-    myMainWindow1 = WPFPyFrameWork(block=False)
-    myMainWindow1.ChangeWindowTitle("Windows", " 1")
-    myMainWindow2 = WPFPyFrameWork(block=False)
-    myMainWindow2.ChangeWindowTitle("Windows", " 2")
-    myMainWindow2.Thread.Join()
+        thread = Threading.Thread(Threading.ThreadStart(run))
+        thread.IsBackground = True
+        thread.SetApartmentState(Threading.ApartmentState.STA)
+        thread.Start()
+        thread.Join()

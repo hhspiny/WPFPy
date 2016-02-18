@@ -3,12 +3,59 @@ clr.AddReference(r"wpf\PresentationFramework")
 from System import IO, Windows, Threading
 from System import TimeSpan
 
-#need to do !! define a parent application --> and find other window
-
 #from System.Windows import Application, Window
 #from System.Windows.Controls import Button, Canvas, TextBlock
 #from System.Windows import LogicalTreeHelper
+
+
+class WPFPyWindow(Windows.Window):
+# the base class for all WPF windows
+# assumed to be launched from an UIthread, and work within UIThread's dispatch and context
+# does not handle threading etc
+
+    def __init__(self, xamlFile=None, show=True, modal=False):
+    # xamlFile:     the xmalFile to defien GUI
+    # show:         launch window immediately vs. using launch()
+    # modal:        launch in modal mode (blocking return)
+        self.XamlFile = xamlFile    
+        self.InitWindow(show, modal)
+
+    def __getattr__(self, item):
+    # map value to attribute, only call if there is no attribute with this name
+        return self.FindName(item)
+
+    def InitWindow(self, show=True, modal=False):
+    ## initialize window
+        try:
+            stream = IO.StreamReader(self.XamlFile)
+            newWindow =  Windows.Markup.XamlReader.Load(stream.BaseStream)
+        except Exception as e:
+            print e
+            raise
     
+        if show: 
+            if modal:
+                self.ShowDialog()
+            else:
+                self.Show()
+        self.InitControls()
+        self.InitCustomizeControls()
+
+    def InitControls(self):
+    # default control initiation for all windows
+        pass
+
+    def InitCustomizeControls(self):
+    # interface allow child class to further customize controls
+        pass
+
+    def GetControl(self,name):
+        tmp = self.FindName(name)
+        if tmp == None:
+            raise AttributeError("%s window does not have %s control" % (self.Title, name))
+        else:
+            return tmp
+ 
 class WPFPyBase(object):
 # the base class for all WPF window
 # load xaml and create window object
@@ -84,19 +131,6 @@ class WPFPyBase(object):
         self.InitControls()
         self.InitCustomizeControls()
 
-    def InitControls(self):
-    # default control initiation for all windows
-        pass
 
-    def InitCustomizeControls(self):
-    # interface allow child class to further customize controls
-        pass
-
-    def GetControl(self,name):
-        tmp = self.MainWindow.FindName(name)
-        if tmp == None:
-            raise AttributeError("%s window does not have %s control" % (self.MainWindow.Title, name))
-        else:
-            return tmp
       
 
