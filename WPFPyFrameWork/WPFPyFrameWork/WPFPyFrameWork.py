@@ -35,9 +35,6 @@ class WPFPyFrameWork(WPFWindow.WPFWindow):
 
     def ButtonClick(self, s,e):
         self.textBlock.Text = "clicked by " + self.Window.Title
-        def delegate(param):
-            myMainWindow1.textBlock.Text = "clicked by %s" % param
-        myMainWindow1.SendToUIThread(delegate, self.Window.Title)
       
     def ChangeWindowTitle(self, text1, text2):
         self.param = [text1, text2,None]
@@ -53,7 +50,7 @@ def run():
     Windows.Application().Run()
 
 if __name__ == "__main__":
-        myMainWindow1 = WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+        myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         myMainWindow1.ChangeWindowTitle("Window ","1")
         myMainWindow2 = WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         myMainWindow2.ChangeWindowTitle("Window ","2")
