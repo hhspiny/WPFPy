@@ -12,114 +12,82 @@ class WPFWindow(object):
     automatically use the proper mechanism to handle messaging neccessary between different threads
     """
     
-    def __init__(self, xamlFile=None, show=True , ownThread = False, modal = False):
+    def __init__(self, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
         """ xamlFile:   xamlFile to create Window object
             show:       show the window during construction
             ownThread:  create a separate thread for this window
+            attachThread: attach to the created window thread
             modal:      block input of other windows (in the same thread)
         """
         self.XamlFile=xamlFile
         self.ownThread = ownThread
+        self.attachThread = attachThread
         self.modal = modal
-        self.InitWindow(show)
-
-    def __getattr__(self, item):
-        """ for attributes that are missing (by __getattribute__) construct from Window object """
-        # To-Do: need to make thread aware 
-        tmp = self.Window.FindName(item)
-        if tmp == None:
-            raise AttributeError("%s does not have % attribute/control" %(self.Window.Title, item))
+        self.show = show
+        if self.ownThread:
+            self.CreateThread()
         else:
-            return self.Wndow.FindName(item)
+            self.InitWindow()
 
-
-
-class WPFPyWindow(Windows.Window):
-# the base class for all WPF windows
-# assumed to be launched from an UIthread, and work within UIThread's dispatch and context
-# does not handle threading etc
-
-    def __getattr__(self, item):
-    # map value to attribute, only call if there is no attribute with this name
-        return self.FindName(item)
-
-    def InitWindow(self, show=True, modal=False):
-    ## initialize window
+    def InitWindow(self):
+        ''' initialize window by creating window object from xaml file and call rest init methods
+        thread aware 
+        '''
         try:
-            stream = IO.StreamReader(self.XamlFile)
-            newWindow =  Windows.Markup.XamlReader.Load(stream.BaseStream)
-        except Exception as e:
-            print e
+            self.XamlStream = IO.StreamReader(self.XamlFile)
+            self.Window =  Windows.Markup.XamlReader.Load(self.XamlStream.BaseStream)
+        except System.Windows.Markup.XamlParseException as e:
+        # need to test what exception gets thrown and print information
+            print "Error parsing XAML file %s" % self.XamlFile
             raise
-    
-        if show: 
-            if modal:
-                self.ShowDialog()
+
+        if self.ownThread:
+            # check if current thread has a sync_context, if not create one        
+            self.SyncContext = Threading.SynchronizationContext.Current
+            if self.SyncContext == None:
+                self.SyncContext =  Windows.Threading.DispatcherSynchronizationContext(Windows.Threading.Dispatcher.CurrentDispatcher)
+                Threading.SynchronizationContext.SetSynchronizationContext(self.SyncContext)    
+            # add window close measurement  
+            self.Window.Closed += self.ThreadShutdown
+
+        if self.show: 
+            if self.modal:
+                self.Window.ShowDialog()
             else:
-                self.Show()
+                self.Window.Show()
         self.InitControls()
         self.InitCustomizeControls()
+        
+        if self.ownThread:
+            # notify that window creation completed
+            self.evt.Set()
 
     def InitControls(self):
-    # default control initiation for all windows
+        """ default behaviors to initialize windows, called during class construction """
         pass
 
     def InitCustomizeControls(self):
-    # interface allow child class to further customize controls
+        """ abstract class to be overridden by child class, customized window initialization during construction"""
         pass
 
-    def GetControl(self,name):
-        tmp = self.FindName(name)
-        if tmp == None:
-            raise AttributeError("%s window does not have %s control" % (self.Title, name))
-        else:
-            return tmp
- 
-class WPFPyBase(object):
-# the base class for all WPF window
-# load xaml and create window object
+# the following methods handle when the window requires its own thread 
 
-    def __init__(self, xamlFile, block=True):
-    # block: whether to block calling thread
-        self.XamlFile = xamlFile
-        self.Block = block
+    def CreateThread(self):
+        ''' create a separate thread for the window during construction '''
         self.evt = Threading.AutoResetEvent(False)
-        self.Application = None
-        self.CreateThread(block)
-
-
-    def CreateThread(self, block=True):
-    # block: whether block return to current thread
-        thread = Threading.Thread(Threading.ThreadStart(self.ThreadStart))
-        thread.IsBackground = True
-        self.Thread = thread
-        thread.SetApartmentState(Threading.ApartmentState.STA)
-        thread.Start()
+        self.Thread = Threading.Thread(Threading.ThreadStart(self.ThreadStart))
+        self.Thread.IsBackground = True
+        self.Thread.SetApartmentState(Threading.ApartmentState.STA)
+        self.Thread.Start()
         # wait for window creation before continue
         self.evt.WaitOne() 
         # block calling thread or not
-        if block:
-           thread.Join()
+        if self.attachThread:
+           self.Thread.Join()
         return self.Thread
 
-
-    # two functions below will execute function in UIThread, use associated context
-    # created during initial window construction. 
-    # execute "func" with "arg" parameter: arg parameter is single object (can be a list)
-    # to pass parameter and get return, use the default class namespace "self." 
-    def PostToUIThread(self,func, arg=None):
-    # Post: execute sync, also pass back exception, handled by calling thread
-        self.Context.Post( Threading.SendOrPostCallback(func), arg )
-
-    def SendToUIThread(self,func, arg=None):
-    # Send:  execute async, will not pass back exceptop, handled by UIThread
-        self.Context.Send( Threading.SendOrPostCallback(func), arg )
-
-
-#  =====
-#  Below methods are executed in its own separate thread of created window
-#  =====
     def ThreadStart(self):
+        ''' start the thread to intialize window'''
         self.InitWindow()
         if Windows.Application.Current == None:
             self.Application = Windows.Application()
@@ -129,27 +97,32 @@ class WPFPyBase(object):
 
     def ThreadShutdown(self,s,e):
         # shuts down the Dispatcher when the window closes
-        Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)
+        Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)      
 
-    def InitWindow(self):
-    # initialization explicitly called from STA environment to read xaml and initialize window
-        
-        #  forces the synchronization context to be in place before the Window gets created
-        #  UI thread is different from the worker thread (calling thread) need context to mashel into UI thread
-        self.Context = Threading.SynchronizationContext.Current
-        if self.Context == None:
-            self.Context =  Windows.Threading.DispatcherSynchronizationContext(Windows.Threading.Dispatcher.CurrentDispatcher)
-            Threading.SynchronizationContext.SetSynchronizationContext(self.Context)  
-     
-        self.Stream = IO.StreamReader(self.XamlFile)
-        self.MainWindow = Windows.Markup.XamlReader.Load(self.Stream.BaseStream)
-        self.MainWindow.Closed += self.ThreadShutdown
-        self.MainWindow.Show()
-        # notify window creation completed
-        self.evt.Set()
-        self.InitControls()
-        self.InitCustomizeControls()
+    # two functions below will execute function in the window object's own thread
+    def PostToUIThread(self,func, arg=None):
+        ''' Post a function "func" to window's thread with "arg" as single parameter object
+        alternative,use class attribute to pass to and return value from "func"
+            Post: execute in sync with original thread, and returne exception to original thread
+        ''' 
+        self.SyncContext.Post( Threading.SendOrPostCallback(func), arg )
+
+    def SendToUIThread(self,func, arg=None):
+        ''' Send a function "func" to window's thread with "arg" as single parameter object
+        alternative,use class attribute to pass to and return value from "func"
+            Send: execute in async with original thread, and exception remains in Window thread
+        ''' 
+        self.SyncContext.Send( Threading.SendOrPostCallback(func), arg )
 
 
+# members below can potentially be called from other thread, need built-in thread messaging system
+
+    def __getattr__(self, item):
+        """ for attributes that are missing (by __getattribute__) construct from Window object """
+        tmp = self.Window.FindName(item)
+        if tmp == None:
+            raise AttributeError("%s does not have % attribute/control" %(self.Window.Title, item))
+        else:
+            return self.Window.FindName(item)
       
 

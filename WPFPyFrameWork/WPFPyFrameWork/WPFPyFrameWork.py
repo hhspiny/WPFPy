@@ -10,41 +10,41 @@
 #if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-import WPFPyBase
+import WPFWindow
 from System import TimeSpan, Windows, Threading
 
-class WPFPyFrameWork(WPFPyBase.WPFPyBase):
-    def __init__(self, block=True):
-        super(WPFPyFrameWork, self).__init__("WPFPyFrameWork.xaml", block)
+class WPFPyFrameWork(WPFWindow.WPFWindow):
+    def __init__(self,                          show=True , 
+                                                ownThread = False, 
+                                                attachThread = False, 
+                                                modal = False):
 
-# ==
-# execute within self.Window thread context
-# ==
+        super(WPFPyFrameWork, self).__init__(xamlFile = "WPFPyFrameWork.xaml", 
+                                                show=show , 
+                                                ownThread = ownThread, 
+                                                attachThread = attachThread, 
+                                                modal = modal)
 
     def InitCustomizeControls(self):
     # override base class method, execute in self.Window thread context
         try:
-            self.GetControl("textBlock").Text = "Window "+self.MainWindow.Title
-            tmpCtrl = self.GetControl("button")
-            tmpCtrl.Click +=self.ButtonClick
+            self.textBlock.Text = "Window "+self.Window.Title
+            self.button.Click += self.ButtonClick
         except AttributeError as e:
             print str(e)
 
     def ButtonClick(self, s,e):
-        self.GetControl('textBlock').Text = "clicked by " + self.MainWindow.Title
+        self.textBlock.Text = "clicked by " + self.Window.Title
         def delegate(param):
-            myMainWindow1.GetControl('textBlock').Text = "clicked by %s" % param
-        myMainWindow1.SendToUIThread(delegate, self.MainWindow.Title)
+            myMainWindow1.textBlock.Text = "clicked by %s" % param
+        myMainWindow1.SendToUIThread(delegate, self.Window.Title)
       
-# == 
-# execute outside self.Window thread context
-# ==
     def ChangeWindowTitle(self, text1, text2):
         self.param = [text1, text2,None]
         self.ret = None
         def delegate(param):
-            self.MainWindow.Title = self.param[0] + self.param[1]
-            self.ret = self.MainWindow.Title
+            self.Window.Title = self.param[0] + self.param[1]
+            self.ret = self.Window.Title
         self.SendToUIThread(delegate)
         return self.ret
     
@@ -53,8 +53,8 @@ def run():
     Windows.Application().Run()
 
 if __name__ == "__main__":
-        thread = Threading.Thread(Threading.ThreadStart(run))
-        thread.IsBackground = True
-        thread.SetApartmentState(Threading.ApartmentState.STA)
-        thread.Start()
-        thread.Join()
+        myMainWindow1 = WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+        myMainWindow1.ChangeWindowTitle("Window ","1")
+        myMainWindow2 = WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+        myMainWindow2.ChangeWindowTitle("Window ","2")
+        myMainWindow2.Thread.Join()
