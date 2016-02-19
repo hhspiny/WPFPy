@@ -27,7 +27,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="WPFPyFrameWork.py" />
-    <Compile Include="WPFPyBase.py" />
+    <Compile Include="WPFWindow.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="WPFPyFrameWork.xaml">

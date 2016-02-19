@@ -1,24 +1,43 @@
+# define base class framework for Python.Net interface with WPF
+
 import clr, System
 clr.AddReference(r"wpf\PresentationFramework")
 from System import IO, Windows, Threading
 from System import TimeSpan
 
-#from System.Windows import Application, Window
-#from System.Windows.Controls import Button, Canvas, TextBlock
-#from System.Windows import LogicalTreeHelper
+class WPFWindow(object):
+    """
+    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in Window attribute
+    All member functions and attributes can be directly accessed regardless of thread. The wrapper class
+    automatically use the proper mechanism to handle messaging neccessary between different threads
+    """
+    
+    def __init__(self, xamlFile=None, show=True , ownThread = False, modal = False):
+        """ xamlFile:   xamlFile to create Window object
+            show:       show the window during construction
+            ownThread:  create a separate thread for this window
+            modal:      block input of other windows (in the same thread)
+        """
+        self.XamlFile=xamlFile
+        self.ownThread = ownThread
+        self.modal = modal
+        self.InitWindow(show)
+
+    def __getattr__(self, item):
+        """ for attributes that are missing (by __getattribute__) construct from Window object """
+        # To-Do: need to make thread aware 
+        tmp = self.Window.FindName(item)
+        if tmp == None:
+            raise AttributeError("%s does not have % attribute/control" %(self.Window.Title, item))
+        else:
+            return self.Wndow.FindName(item)
+
 
 
 class WPFPyWindow(Windows.Window):
 # the base class for all WPF windows
 # assumed to be launched from an UIthread, and work within UIThread's dispatch and context
 # does not handle threading etc
-
-    def __init__(self, xamlFile=None, show=True, modal=False):
-    # xamlFile:     the xmalFile to defien GUI
-    # show:         launch window immediately vs. using launch()
-    # modal:        launch in modal mode (blocking return)
-        self.XamlFile = xamlFile    
-        self.InitWindow(show, modal)
 
     def __getattr__(self, item):
     # map value to attribute, only call if there is no attribute with this name
