@@ -46,12 +46,17 @@ class WPFPyFrameWork(WPFWindow.WPFWindow):
         return self.ret
     
 def run():
-    w = WPFPyBase.WPFPyWindow("WPFPyFrameWork.xaml")
-    Windows.Application().Run()
-
-if __name__ == "__main__":
+        import WPFPyFrameWork
+        global myMainWindow1
+        global myMainWindow2
         myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         myMainWindow1.ChangeWindowTitle("Window ","1")
-        myMainWindow2 = WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+        myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         myMainWindow2.ChangeWindowTitle("Window ","2")
+        return myMainWindow1
+
+
+if __name__ == "__main__":
+        w = run()
+        a = w.Title
         myMainWindow2.Thread.Join()
