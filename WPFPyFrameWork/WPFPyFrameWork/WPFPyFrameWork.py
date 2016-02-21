@@ -28,13 +28,13 @@ class WPFPyFrameWork(WPFWindow.WPFWindow):
     def InitCustomizeControls(self):
     # override base class method, execute in self.Window thread context
         try:
-            self.textBlock.Text = "Window "+self.Window.Title
-            self.button.Click += self.ButtonClick
+            self.Window.textBlock.Text = "Window "+self.Window.Title
+            self.Window.button.Click += self.ButtonClick
         except AttributeError as e:
             print str(e)
 
     def ButtonClick(self, s,e):
-        self.textBlock.Text = "clicked by " + self.Window.Title
+        self.Window.textBlock.Text = "clicked by " + self.Window.Title
       
     def ChangeWindowTitle(self, text1, text2):
         self.param = [text1, text2,None]
@@ -58,5 +58,5 @@ def run():
 
 if __name__ == "__main__":
         w = run()
-        a = w.Title
+        a = w.Window.Title
         myMainWindow2.Thread.Join()

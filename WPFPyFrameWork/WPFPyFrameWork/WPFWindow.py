@@ -115,9 +115,21 @@ class WPFWindow(object):
         ''' 
         self.SyncContext.Send( Threading.SendOrPostCallback(func), arg )
        
-    def __getattr__(self, item):
-        """ for attributes that are missing (by __getattribute__) map to Window object """
-        return self.__WindowThreadWrapper(item)
+#  intercept method call to properly process self.Window calls
+
+    def __getattribute__(self, name):
+        attr = super(WPFWindow, self).__getattribute__(name)
+        if name == "Window":
+            if self.SyncContext == Threading.SynchronizationContext.Current:
+                return 
+        if callable(attr):
+            def wrapped(*args, **kwargs):
+                retval = attr(*args, **kwargs)
+                self.retvals.append(retval)
+                return retval
+            return wrapped
+        else:
+            return attr
 
 
     def __WindowThreadWrapper(self,item):
