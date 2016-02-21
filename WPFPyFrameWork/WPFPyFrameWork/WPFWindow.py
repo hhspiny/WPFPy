@@ -9,13 +9,8 @@ from functools import wraps
 
 class WPFWindow(object):
     """
-    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in Window attribute
-    All member functions and attributes can be directly accessed regardless of thread. The wrapper class
-    automatically use the proper mechanism to handle messaging neccessary between different threads
-    Notes:
-    1. self.Window contains the actual System.Windows.Window object
-    2. use self.Title (i.e.) to access self.Window.Title directly
-    3. do not map self.Window.xxx to self.xxx as self.Window.xxx can be in different threading, which wrapper class automatically sends msg to
+    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in self.Window
+    Automatically looks up missing members as members of self.Window, and handles Window thread messaging. 
     """
     
     def __init__(self, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
@@ -115,50 +110,68 @@ class WPFWindow(object):
         ''' 
         self.SyncContext.Send( Threading.SendOrPostCallback(func), arg )
        
-#  intercept method call to properly process self.Window calls
+#  For attributes not found in wrapper class, look them up in self.Window 
+#  automatically handle the need of thread msg passing and pass back wrapper functions if needed
 
-    def __getattribute__(self, name):
-        attr = super(WPFWindow, self).__getattribute__(name)
-        if name == "Window":
-            if self.SyncContext == Threading.SynchronizationContext.Current:
-                return 
-        if callable(attr):
-            def wrapped(*args, **kwargs):
-                retval = attr(*args, **kwargs)
-                self.retvals.append(retval)
-                return retval
-            return wrapped
-        else:
-            return attr
+    def __getattr__(self, name):
+        return self.__WindowAttribute(self, name)
 
+    def __ResolveWindowMsgType(self, name):
+        '''Resolve what 'name' represent in self.window context'''
+        self.__WindowThreadMsg = {}
+        try:
+            # check if attributes or method of self.Windows
+            attr = self.Window.__getattribute__(name)
+            if callable(attr):
+                self.__WindowThreadMsg['type'] = 'func'
+            else:
+                self.__WindowThreadMsg['type'] = 'attr'
+        except AttributeError:
+                #check if a control of self.Window
+                control = self.Window.FindName(name)
+                if control == None:
+                    raise AttributeError("%s Window has no attribute or controls with name %s" % (self.Window.Title, NameError))
+                self.__WindowThreadMsg['type'] = 'control'
 
-    def __WindowThreadWrapper(self,item):
-        ''' wrapper function to wrap System.Windows.Window methods in SynchronizationContext.Send func
-        use func(*args, **kwds) to wrap functions, and the implicit inherent of self name space in embedded function
+    def __WindowAttribute(self,name):
+        ''' Look up attributes in self.Window and handle the thread messaging if neccessary 
+        tips:  1. embedded funcs already have access to self namespace
+               2. use func(*args, **kwargs) to call funcs with unknown parameter list
         '''
-        def wrapper(*args, **kwds):
-        # embedded function, already have access to self namespace
-        # wrap the params in self.__WindowThreadMsgParam
-            self.__WindowThreadMsgParam = {}
-            self.__WindowThreadMsgParam['args'] = args
-            self.__WindowThreadMsgParam['kwds'] = kwds
-            self.__WindowThreadMsgParam['ret'] = []
-            self.SyncContext.Send( Threading.SendOrPostCallback(delegate), item )
-            return  self.__WindowThreadMsgParam['ret']
-
-        def delegate(item):
-            print item
-        # the funcs passed through by SynchronizationContext.Send, params are passed by self.__WindowThreadMsgParam
-        # note: need to explicitly to use * and ** here
-            WindowItem = self.Window.FindName(item)
-            self.__WindowThreadMsgParam['ret'] =  WindowItem(*self.__WindowThreadMsgParam['args'], **self.__WindowThreadMsgParam['kwds'])
 
         if self.SyncContext == Threading.SynchronizationContext.Current:
-            return self.Window.FindName(item)
+            self.__ResolveWindowMsgType(name)
+            if self.__WindowThreadMsg['type'] == 'attr':
+                return self.Window.__getattribute__(name)
+            elif self.__WindowThreadMsg['type'] == 'control':
+                return self.Window.FindName(name)
+            elif self.__WindowThreadMsg['type'] == 'func':
+                attr = self.Window.__getattribute__(name)
+                def wrapper(*args, **kwargs):
+                # embedded function, already have access to self namespace
+                        retval = attr(*args, **kwargs)
+                        return retval
+                return wrapper
         else:
-            print "different thread"
-            return wrapper
-            
-        
-      
+            # all reference to self.Window needs to be posted to its own thread
+            # first find out if it is attribute, saved in self.__WindowThreadMsg
+            self.SyncContext.Send(Threading.SendOrPostCallback(self.__ResolveWindowMsgType), name )
+            if self.__WindowThreadMsg['type'] == 'attr':
+                pass
+            elif self.__WindowThreadMsg['type'] == 'control':
+                pass
+            elif self.__WindowThreadMsg['type'] == 'func':  
+                def delegate(name):
+                # delegate function to execute actual self.Window methods in its own thread
+                    attr = self.Window.__getattribute__(name)
+                    retval = attr(*(self.__WindowThreadMsg['args']), **(self.__WindowThreadMsg['kwargs']))
+                    self.__WindowThreadMsg['retval'] = retval
+                def wrapper(*args, **kwargs):
+                # embedded function, already have access to self namespace                    
+                    self.__WindowThreadMsg['args'] = args
+                    self.__WindowThreadMsg['kwargs'] = kwargs
+                    self.__WindowThreadMsg['retval'] = []
+                    self.SyncContext.Send( Threading.SendOrPostCallback(delegate), name )
+                    return  self.__WindowThreadMsg['ret']
 
+       
