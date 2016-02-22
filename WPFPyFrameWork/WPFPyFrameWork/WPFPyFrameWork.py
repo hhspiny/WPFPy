@@ -10,10 +10,10 @@
 #if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-import WPFWindow
+from WPFWindow import WPFWindow
 from System import TimeSpan, Windows, Threading
 
-class WPFPyFrameWork(WPFWindow.WPFWindow):
+class WPFPyFrameWork(WPFWindow):
     def __init__(self,                          show=True , 
                                                 ownThread = False, 
                                                 attachThread = False, 
@@ -25,38 +25,31 @@ class WPFPyFrameWork(WPFWindow.WPFWindow):
                                                 attachThread = attachThread, 
                                                 modal = modal)
 
-    def InitCustomizeControls(self):
+    def __InitCustomizeControls__(self):
     # override base class method, execute in self.Window thread context
-        try:
-            self.Window.textBlock.Text = "Window "+self.Window.Title
-            self.Window.button.Click += self.ButtonClick
-        except AttributeError as e:
-            print str(e)
+            self.textBlock.Text = "Window "+self.Window.Title
+            self.button.Click += self.ButtonClick
 
     def ButtonClick(self, s,e):
-        self.Window.textBlock.Text = "clicked by " + self.Window.Title
-      
+        self.textBlock.Text = "clicked by " + self.Window.Title
+    
+    # any function that operates on self.Window that can be called from outside Window Thread
+    # should have @WPFWindow.WPFWindowThread decorator
+    @WPFWindow.WPFWindowThread
     def ChangeWindowTitle(self, text1, text2):
-        self.param = [text1, text2,None]
-        self.ret = None
-        def delegate(param):
-            self.Window.Title = self.param[0] + self.param[1]
-            self.ret = self.Window.Title
-        self.SendToUIThread(delegate)
-        return self.ret
+        self.Window.Title = text1 + text2
+        return self.Window.Title
     
 def run():
         import WPFPyFrameWork
         global myMainWindow1
         global myMainWindow2
         myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-        myMainWindow1.ChangeWindowTitle("Window ","1")
+        print myMainWindow1.ChangeWindowTitle("Window ","1")
         myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-        myMainWindow2.ChangeWindowTitle("Window ","2")
+        print myMainWindow2.ChangeWindowTitle("Window ","2")
         return myMainWindow1
-
 
 if __name__ == "__main__":
         w = run()
-        a = w.Window.Title
-        myMainWindow2.Thread.Join()
+        myMainWindow1.Thread.Join()

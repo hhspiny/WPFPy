@@ -5,15 +5,14 @@ clr.AddReference(r"wpf\PresentationFramework")
 from System import IO, Windows, Threading
 from System import TimeSpan
 
-from functools import wraps
-
-class WPFWindow(object):
+class WPFWindow(System.Object):
     """
-    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in self.Window
-    Automatically looks up missing members as members of self.Window, and handles Window thread messaging. 
+    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in self.Window 
+    Since self.Window could operate in separate thread, all access to self.Window should be through
+    a function with a wrapper @WindowThread
     """
     
-    def __init__(self, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
+    def __init__(self, application=None, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
         """ xamlFile:   xamlFile to create Window object
             show:       show the window during construction
             ownThread:  create a separate thread for this window
@@ -23,56 +22,69 @@ class WPFWindow(object):
         self.XamlFile=xamlFile
         self.ownThread = ownThread
         self.attachThread = attachThread
-        self.__ModalWindow = modal
-        self.__ShowWindow = show
+        self.__ModalWindow__ = modal
+        self.__ShowWindow__ = show
+        self.Application = application
         if self.ownThread:
-            self.CreateThread()
+            self.__CreateThread__()
         else:
-            self.InitWindow()
+            self.__InitWindow__()
 
-    def InitWindow(self):
+    def __InitWindow__(self):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
-            self.XamlStream = IO.StreamReader(self.XamlFile)
-            self.Window =  Windows.Markup.XamlReader.Load(self.XamlStream.BaseStream)
+            XamlStream = IO.StreamReader(self.XamlFile)
+            self.Window =  Windows.Markup.XamlReader.Load(XamlStream.BaseStream)
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing XAML file %s" % self.XamlFile
             raise
 
-        if self.__ShowWindow: 
-            if self.__ModalWindow:
+        if self.__ShowWindow__: 
+            if self.__ModalWindow__:
                 self.Window.ShowDialog()
             else:
                 self.Window.Show()
-        self.InitControls()
-        self.InitCustomizeControls()
+        self.__InitControls__()
+        self.__InitCustomizeControls__()
         
-    def InitControls(self):
+    def __InitControls__(self):
         """ default behaviors to initialize windows, called during class construction """
         pass
 
-    def InitCustomizeControls(self):
+    def __InitCustomizeControls__(self):
         """ abstract class to be overridden by child class, customized window initialization during construction"""
         pass
 
+    def __getattr__(self, name):
+        ''' convert attribute of WPFWindow to finding a control in self.Window '''
+        try:
+            attr = self.Window.__getattribute__(name)
+            return attr
+        except AttributeError:
+            control = self.Window.FindName(name)
+            if control == None:
+                raise AttributeError("%s does not have %s attribute/control" % (self.Window.Title, name))
+            else:
+                return control
+
 # the following methods handle when the window requires its own thread 
 
-    def CreateThread(self):
+    def __CreateThread__(self):
         ''' create a separate thread for the window during construction '''
-        self.evt = Threading.AutoResetEvent(False)
-        self.Thread = Threading.Thread(Threading.ThreadStart(self.ThreadStart))
+        self.__evt = Threading.AutoResetEvent(False)
+        self.Thread = Threading.Thread(Threading.ThreadStart(self.__ThreadStart__))
         self.Thread.IsBackground = True
         self.Thread.SetApartmentState(Threading.ApartmentState.STA)
         self.Thread.Start()
         # wait for window creation before continue
-        self.evt.WaitOne() 
+        self.__evt.WaitOne() 
         # block calling thread or not
         if self.attachThread:
            self.Thread.Join()
         return self.Thread
 
-    def ThreadStart(self):
+    def __ThreadStart__(self):
         ''' start the thread to intialize window'''
 
         # check if current thread has a sync_context, if not create one        
@@ -81,97 +93,28 @@ class WPFWindow(object):
             self.SyncContext =  Windows.Threading.DispatcherSynchronizationContext(Windows.Threading.Dispatcher.CurrentDispatcher)
             Threading.SynchronizationContext.SetSynchronizationContext(self.SyncContext)    
         # add window close measurement  
-        self.InitWindow()
-        self.Window.Closed += self.ThreadShutdown
-        self.evt.Set()
+        self.__InitWindow__()
+        self.Window.Closed += self.__ThreadShutdown__
+        self.__evt.Set()
 
-        if Windows.Application.Current == None:
-            self.Application = Windows.Application()
-            self.Application.Run()
+        if self.Application == None :
+            if Windows.Application.Current == None:
+                self.Application = Windows.Application()
+                self.Application.Run()
+            else:
+                self.Application = Windows.Application.Current
+                Windows.Threading.Dispatcher.Run()
         else:
             Windows.Threading.Dispatcher.Run()
 
-    def ThreadShutdown(self,s,e):
+    def __ThreadShutdown__(self,s,e):
         # shuts down the Dispatcher when the window closes
-        Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)      
+        Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)       
 
-    # two functions below will execute function in the window object's own thread
-    def PostToUIThread(self,func, arg=None):
-        ''' Post a function "func" to window's thread with "arg" as single parameter object
-        alternative,use class attribute to pass to and return value from "func"
-            Post: execute in sync with original thread, and returne exception to original thread
-        ''' 
-        self.SyncContext.Post( Threading.SendOrPostCallback(func), arg )
-
-    def SendToUIThread(self,func, arg=None):
-        ''' Send a function "func" to window's thread with "arg" as single parameter object
-        alternative,use class attribute to pass to and return value from "func"
-            Send: execute in async with original thread, and exception remains in Window thread
-        ''' 
-        self.SyncContext.Send( Threading.SendOrPostCallback(func), arg )
-       
-#  For attributes not found in wrapper class, look them up in self.Window 
-#  automatically handle the need of thread msg passing and pass back wrapper functions if needed
-
-    def __getattr__(self, name):
-        return self.__WindowAttribute(self, name)
-
-    def __ResolveWindowMsgType(self, name):
-        '''Resolve what 'name' represent in self.window context'''
-        self.__WindowThreadMsg = {}
-        try:
-            # check if attributes or method of self.Windows
-            attr = self.Window.__getattribute__(name)
-            if callable(attr):
-                self.__WindowThreadMsg['type'] = 'func'
-            else:
-                self.__WindowThreadMsg['type'] = 'attr'
-        except AttributeError:
-                #check if a control of self.Window
-                control = self.Window.FindName(name)
-                if control == None:
-                    raise AttributeError("%s Window has no attribute or controls with name %s" % (self.Window.Title, NameError))
-                self.__WindowThreadMsg['type'] = 'control'
-
-    def __WindowAttribute(self,name):
-        ''' Look up attributes in self.Window and handle the thread messaging if neccessary 
-        tips:  1. embedded funcs already have access to self namespace
-               2. use func(*args, **kwargs) to call funcs with unknown parameter list
-        '''
-
-        if self.SyncContext == Threading.SynchronizationContext.Current:
-            self.__ResolveWindowMsgType(name)
-            if self.__WindowThreadMsg['type'] == 'attr':
-                return self.Window.__getattribute__(name)
-            elif self.__WindowThreadMsg['type'] == 'control':
-                return self.Window.FindName(name)
-            elif self.__WindowThreadMsg['type'] == 'func':
-                attr = self.Window.__getattribute__(name)
-                def wrapper(*args, **kwargs):
-                # embedded function, already have access to self namespace
-                        retval = attr(*args, **kwargs)
-                        return retval
-                return wrapper
-        else:
-            # all reference to self.Window needs to be posted to its own thread
-            # first find out if it is attribute, saved in self.__WindowThreadMsg
-            self.SyncContext.Send(Threading.SendOrPostCallback(self.__ResolveWindowMsgType), name )
-            if self.__WindowThreadMsg['type'] == 'attr':
-                pass
-            elif self.__WindowThreadMsg['type'] == 'control':
-                pass
-            elif self.__WindowThreadMsg['type'] == 'func':  
-                def delegate(name):
-                # delegate function to execute actual self.Window methods in its own thread
-                    attr = self.Window.__getattribute__(name)
-                    retval = attr(*(self.__WindowThreadMsg['args']), **(self.__WindowThreadMsg['kwargs']))
-                    self.__WindowThreadMsg['retval'] = retval
-                def wrapper(*args, **kwargs):
-                # embedded function, already have access to self namespace                    
-                    self.__WindowThreadMsg['args'] = args
-                    self.__WindowThreadMsg['kwargs'] = kwargs
-                    self.__WindowThreadMsg['retval'] = []
-                    self.SyncContext.Send( Threading.SendOrPostCallback(delegate), name )
-                    return  self.__WindowThreadMsg['ret']
-
-       
+    # any function that operates on self.Window that can be called from outside Window Thread
+    # should have @WPFWindow.WPFWindowThread decorator
+    # since the function can only operate with a WPFWindow context, the function's first arg should alwasy be
+    # WPFWindow object
+    @staticmethod
+    def WPFWindowThread(func):        ''' decorator function to wrapper calls referencing self.Windo in thread safe call '''        def wrapper(self, *args, **kwargs):        # wrapper function to run within correct thread context of WPFWindow object (farg)            def delegate(param):            # the delegate function to be executed in self.Window Thread            # since delegate() is defined with context of self.wrapper, it automatically has access to self                retval = func(self, *(self._msg[0]),**(self._msg[1]))
+                self._msg[2] = retval                        # use self._msg to pass on parameters to delegate function            self._msg = [args, kwargs, None]            if Threading.SynchronizationContext.Current == self.SyncContext:            #   executing in WPFWindow's context                delegate(None)                retval =  self._msg[2]                return retval            else:            #  send delegate function to proper context                self.SyncContext.Send( Threading.SendOrPostCallback(delegate), None)                retval =  self._msg[2]                return retval        return wrapper      
