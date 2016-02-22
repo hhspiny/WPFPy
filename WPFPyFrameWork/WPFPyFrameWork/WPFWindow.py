@@ -5,11 +5,25 @@ clr.AddReference(r"wpf\PresentationFramework")
 from System import IO, Windows, Threading
 from System import TimeSpan
 
+
+class __WPFControlsInWindow__(System.Object):
+    ''' surrogate for controls in self.Window in WPFWindow to access controls by name
+    '''
+    def __init__(self, window):
+        self.Window = window
+
+    def __getattr__(self, name):
+        control = self.Window.FindName(name)
+        if control == None:
+            raise AttributeError("%s does not have %s attribute/control" % (self.Window.Title, name))
+        else:
+            return control
+    
 class WPFWindow(System.Object):
     """
     Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in self.Window 
-    Since self.Window could operate in separate thread, all access to self.Window should be through
-    a function with a wrapper @WindowThread
+    Since self.Window could operate in separate thread, all externally accessible functions that could 
+    reference self.Window should be through functions with decorator @WPFWindow.WPFWindowThread
     """
     
     def __init__(self, application=None, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
@@ -35,6 +49,7 @@ class WPFWindow(System.Object):
         try:
             XamlStream = IO.StreamReader(self.XamlFile)
             self.Window =  Windows.Markup.XamlReader.Load(XamlStream.BaseStream)
+            self.Controls = __WPFControlsInWindow__(self.Window)
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing XAML file %s" % self.XamlFile
@@ -55,18 +70,6 @@ class WPFWindow(System.Object):
     def __InitCustomizeControls__(self):
         """ abstract class to be overridden by child class, customized window initialization during construction"""
         pass
-
-    def __getattr__(self, name):
-        ''' convert attribute of WPFWindow to finding a control in self.Window '''
-        try:
-            attr = self.Window.__getattribute__(name)
-            return attr
-        except AttributeError:
-            control = self.Window.FindName(name)
-            if control == None:
-                raise AttributeError("%s does not have %s attribute/control" % (self.Window.Title, name))
-            else:
-                return control
 
 # the following methods handle when the window requires its own thread 
 

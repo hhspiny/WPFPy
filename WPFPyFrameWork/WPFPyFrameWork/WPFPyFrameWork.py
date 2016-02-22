@@ -27,11 +27,11 @@ class WPFPyFrameWork(WPFWindow):
 
     def __InitCustomizeControls__(self):
     # override base class method, execute in self.Window thread context
-            self.textBlock.Text = "Window "+self.Window.Title
-            self.button.Click += self.ButtonClick
+            self.Controls.textBlock.Text = "Window "+self.Window.Title
+            self.Controls.button.Click += self.ButtonClick
 
     def ButtonClick(self, s,e):
-        self.textBlock.Text = "clicked by " + self.Window.Title
+        self.Controls.textBlock.Text = "clicked by " + self.Window.Title
     
     # any function that operates on self.Window that can be called from outside Window Thread
     # should have @WPFWindow.WPFWindowThread decorator
