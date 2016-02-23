@@ -10,8 +10,26 @@
 #if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-from WPFWindow import WPFWindow
+import clr
+from WPFWindow import *
 from System import TimeSpan, Windows, Threading
+
+class WPFPyFrameWorkViewModel(WPFViewModel):
+    def __init__(self, w):
+        super(WPFPyFrameWorkViewModel, self).__init__(w)
+        self.textBlockContent = "Window "+ self.WPFWindow.Window.Title
+
+class MyData(System.Object):
+   def __init__(self):
+      self.text = 'Initial text'
+   @property
+   def Mine(self): 
+        print "here"
+        return self.text
+   @Mine.setter
+   def Mine(self, value): 
+        print "2"
+        self.text = value
 
 class WPFPyFrameWork(WPFWindow):
     def __init__(self,                          show=True , 
@@ -25,9 +43,15 @@ class WPFPyFrameWork(WPFWindow):
                                                 attachThread = attachThread, 
                                                 modal = modal)
 
+    def __InitDataContext__(self):
+#        self.ViewModel =  WPFPyFrameWorkViewModel(self)
+#        self.Window.textBlockContent = "Window "+ self.Window.Title
+        student = MyData()
+        self.Window.DataContext = student
+        
+
     def __InitCustomizeControls__(self):
     # override base class method, execute in self.Window thread context
-            self.Controls.textBlock.Text = "Window "+self.Window.Title
             self.Controls.button.Click += self.ButtonClick
 
     def ButtonClick(self, s,e):

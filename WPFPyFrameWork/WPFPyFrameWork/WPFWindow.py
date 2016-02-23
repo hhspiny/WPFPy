@@ -2,7 +2,7 @@
 
 import clr, System
 clr.AddReference(r"wpf\PresentationFramework")
-from System import IO, Windows, Threading
+from System import IO, Windows, Threading, ComponentModel
 from System import TimeSpan
 
 
@@ -18,6 +18,22 @@ class __WPFControlsInWindow__(System.Object):
             raise AttributeError("%s does not have %s attribute/control" % (self.Window.Title, name))
         else:
             return control
+
+class WPFViewModel(System.Object):
+    def __init__(self, wpfWindow):
+        self.PropertyChangedHandlers = []
+        self.WPFWindow = wpfWindow
+    
+    def RaisePropertyChanged(self, propertyName):
+        args = ComponentModel.PropertyChangedEventArgs(propertyName)
+        for handler in self.PropertyChangedHandlers:
+            handler(self, args)
+            
+    def add_PropertyChanged(self, handler):
+        self.PropertyChangedHandlers.append(handler)
+        
+    def remove_PropertyChanged(self, handler):
+        self.PropertyChangedHandlers.remove(handler)
     
 class WPFWindow(System.Object):
     """
@@ -60,15 +76,20 @@ class WPFWindow(System.Object):
                 self.Window.ShowDialog()
             else:
                 self.Window.Show()
+        self.__InitDataContext__()
         self.__InitControls__()
         self.__InitCustomizeControls__()
+
+    def __InitDataContext__(self):
+        """ abstract method to be overridden by child class, assign data context """
+        pass
         
     def __InitControls__(self):
         """ default behaviors to initialize windows, called during class construction """
         pass
 
     def __InitCustomizeControls__(self):
-        """ abstract class to be overridden by child class, customized window initialization during construction"""
+        """ abstract method to be overridden by child class, customized window initialization during construction"""
         pass
 
 # the following methods handle when the window requires its own thread 
