@@ -114,10 +114,29 @@ class WPFWindow(System.Object):
         # shuts down the Dispatcher when the window closes
         Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)       
 
-    # any function that operates on self.Window that can be called from outside Window Thread
-    # should have @WPFWindow.WPFWindowThread decorator
-    # since the function can only operate with a WPFWindow context, the function's first arg should alwasy be
-    # WPFWindow object
+    # Any functions that could access self.Window should have the WPFWindowThread decorator to pass msg between threads
+    # The function can be a class method or a global method, as long as it has first arg is a WPFWindow object
     @staticmethod
-    def WPFWindowThread(func):        ''' decorator function to wrapper calls referencing self.Windo in thread safe call '''        def wrapper(self, *args, **kwargs):        # wrapper function to run within correct thread context of WPFWindow object (farg)            def delegate(param):            # the delegate function to be executed in self.Window Thread            # since delegate() is defined with context of self.wrapper, it automatically has access to self                retval = func(self, *(self._msg[0]),**(self._msg[1]))
-                self._msg[2] = retval                        # use self._msg to pass on parameters to delegate function            self._msg = [args, kwargs, None]            if Threading.SynchronizationContext.Current == self.SyncContext:            #   executing in WPFWindow's context                delegate(None)                retval =  self._msg[2]                return retval            else:            #  send delegate function to proper context                self.SyncContext.Send( Threading.SendOrPostCallback(delegate), None)                retval =  self._msg[2]                return retval        return wrapper      
+    def WPFWindowThread(func):
+        ''' decorator to wrapper calls referencing self.Windo in thread safe call, the function itself should have WPFWindow object as first arg '''
+        def wrapper(self, *args, **kwargs):
+        # wrapper function to run within correct thread context of WPFWindow object (farg)
+            def delegate(param):
+            # the delegate function to be executed in self.Window Thread
+            # since delegate() is defined with context of self.wrapper, it automatically has access to self
+                retval = func(self, *(self._msg[0]),**(self._msg[1]))
+                self._msg[2] = retval
+            
+            # use self._msg to pass on parameters to delegate function
+            self._msg = [args, kwargs, None]
+            if Threading.SynchronizationContext.Current == self.SyncContext:
+            #   executing in WPFWindow's context
+                delegate(None)
+                retval =  self._msg[2]
+                return retval
+            else:
+            #  send delegate function to proper context
+                self.SyncContext.Send( Threading.SendOrPostCallback(delegate), None)
+                retval =  self._msg[2]
+                return retval
+        return wrapper      

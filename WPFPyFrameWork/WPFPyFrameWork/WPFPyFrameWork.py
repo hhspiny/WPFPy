@@ -48,6 +48,14 @@ def run():
         print myMainWindow1.ChangeWindowTitle("Window ","1")
         myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         print myMainWindow2.ChangeWindowTitle("Window ","2")
+        
+        @WPFWindow.WPFWindowThread
+        def ModifyWindowTitle(self, text):
+            self.Window.Title = text
+            self.Controls.button.Text = "Now"
+
+        ModifyWindowTitle(myMainWindow1, "modified")
+
         return myMainWindow1
 
 if __name__ == "__main__":
