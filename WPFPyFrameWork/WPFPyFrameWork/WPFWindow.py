@@ -6,7 +6,7 @@ from System import IO, Windows, Threading, ComponentModel
 from System import TimeSpan
 
 
-class __WPFControlsInWindow__(System.Object):
+class WPFControlsInWindow(System.Object):
     ''' surrogate for controls in self.Window in WPFWindow to access controls by name
     '''
     def __init__(self, window):
@@ -19,85 +19,104 @@ class __WPFControlsInWindow__(System.Object):
         else:
             return control
 
-class WPFViewModel(System.Object):
-    def __init__(self, wpfWindow):
-        self.PropertyChangedHandlers = []
-        self.WPFWindow = wpfWindow
-    
-    def RaisePropertyChanged(self, propertyName):
-        args = ComponentModel.PropertyChangedEventArgs(propertyName)
-        for handler in self.PropertyChangedHandlers:
-            handler(self, args)
-            
-    def add_PropertyChanged(self, handler):
-        self.PropertyChangedHandlers.append(handler)
-        
-    def remove_PropertyChanged(self, handler):
-        self.PropertyChangedHandlers.remove(handler)
-    
+class WPFDataContext(System.Object):
+    ''' surrogate for DataContext in format of ExpandoObject '''
+    def __init__(self, window):
+        self.Context = System.Dynamic.ExpandoObject()
+        self.Window = window
+
+    def CreateBinding(self, name, refobj):
+        ''' create a new attribute and bind the passed on object to the new attribute '''
+        if not hasattr(self, name):
+            setattr(self, name, refobj)
+        obj = getattr(self, name)        
+        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.Context, name, obj)   
+        return obj
+
+    def BindingTo(self, name, obj):
+        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.Context, name, obj)  
+        return obj
+   
 class WPFWindow(System.Object):
     """
-    Wrapper class for Systems.Window.Window class. Create and save WPF/XAML window in self.Window 
-    Since self.Window could operate in separate thread, all externally accessible functions that could 
-    reference self.Window should be through functions with decorator @WPFWindow.WPFWindowThread
+    Wrapper class for Systems.Window.Window class. 
+    1. Create and save WPF/XAML window in self.Window 
+    2. All methods that could access self.Window should be defined with decorator @WPFWindow.WPFWindowThread
+    3. DataContext Binding process 
     """
     
-    def __init__(self, application=None, xamlFile=None, show=True , ownThread = False, attachThread = False, modal = False):
+    def __init__(self, xamlFile,
+                 dataContext = None, application = None,
+                 ownThread = False, attachThread = False,
+                 show=True ,modal = False):
         """ xamlFile:   xamlFile to create Window object
-            show:       show the window during construction
+            dataContext: provided WPFDataContext, if None auto-create with base class
+            application: provided Application, if None auto-create with base class
             ownThread:  create a separate thread for this window
             attachThread: attach to the created window thread
+            show:       show the window during construction
             modal:      block input of other windows (in the same thread)
         """
         self.XamlFile=xamlFile
+        self.Data = dataContext
+        self.Application = application
         self.ownThread = ownThread
         self.attachThread = attachThread
-        self.__ModalWindow__ = modal
-        self.__ShowWindow__ = show
-        self.Application = application
-        if self.ownThread:
-            self.__CreateThread__()
-        else:
-            self.__InitWindow__()
+        self.Modal = modal
+        self.ShowWindow = show
 
-    def __InitWindow__(self):
+        if self.ownThread:
+            self.CreateThread()
+        else:
+            self.InitWindow()
+
+    def InitWindow(self):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
             XamlStream = IO.StreamReader(self.XamlFile)
             self.Window =  Windows.Markup.XamlReader.Load(XamlStream.BaseStream)
-            self.Controls = __WPFControlsInWindow__(self.Window)
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing XAML file %s" % self.XamlFile
             raise
 
-        if self.__ShowWindow__: 
-            if self.__ModalWindow__:
+        if self.ShowWindow: 
+            if self.Modal:
                 self.Window.ShowDialog()
             else:
                 self.Window.Show()
-        self.__InitDataContext__()
-        self.__InitControls__()
-        self.__InitCustomizeControls__()
+        self.InitControls()
+        self.CustomizeWindow()
+        self.CreateDataContext()
 
-    def __InitDataContext__(self):
-        """ abstract method to be overridden by child class, assign data context """
-        pass
-        
-    def __InitControls__(self):
-        """ default behaviors to initialize windows, called during class construction """
+    def InitControls(self):
+        ''' initialize controls '''
+        # to access controls in self.Windows
+        self.Controls =WPFControlsInWindow(self.Window)
+
+    def CustomizeWindow(self):
+        ''' to be overriden, customize window before launching'''
         pass
 
-    def __InitCustomizeControls__(self):
-        """ abstract method to be overridden by child class, customized window initialization during construction"""
+    def CreateDataContext(self):
+        ''' create DataContext object and attach'''
+        if self.Data == None:
+            self.Data = WPFDataContext(self)
+        self.Data.Window = self
+        self.Window.DataContext = self.Data.Context
+        self.DefineDataBinding()
+
+    def DefineDataBinding(self):
+        ''' to be overriden, define individual control data binding targets from xaml'''
         pass
+
 
 # the following methods handle when the window requires its own thread 
 
-    def __CreateThread__(self):
+    def CreateThread(self):
         ''' create a separate thread for the window during construction '''
         self.__evt = Threading.AutoResetEvent(False)
-        self.Thread = Threading.Thread(Threading.ThreadStart(self.__ThreadStart__))
+        self.Thread = Threading.Thread(Threading.ThreadStart(self.ThreadStart))
         self.Thread.IsBackground = True
         self.Thread.SetApartmentState(Threading.ApartmentState.STA)
         self.Thread.Start()
@@ -108,7 +127,7 @@ class WPFWindow(System.Object):
            self.Thread.Join()
         return self.Thread
 
-    def __ThreadStart__(self):
+    def ThreadStart(self):
         ''' start the thread to intialize window'''
 
         # check if current thread has a sync_context, if not create one        
@@ -117,8 +136,8 @@ class WPFWindow(System.Object):
             self.SyncContext =  Windows.Threading.DispatcherSynchronizationContext(Windows.Threading.Dispatcher.CurrentDispatcher)
             Threading.SynchronizationContext.SetSynchronizationContext(self.SyncContext)    
         # add window close measurement  
-        self.__InitWindow__()
-        self.Window.Closed += self.__ThreadShutdown__
+        self.InitWindow()
+        self.Window.Closed += self.ThreadShutdown
         self.__evt.Set()
 
         if self.Application == None :
@@ -131,7 +150,7 @@ class WPFWindow(System.Object):
         else:
             Windows.Threading.Dispatcher.Run()
 
-    def __ThreadShutdown__(self,s,e):
+    def ThreadShutdown(self,s,e):
         # shuts down the Dispatcher when the window closes
         Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvokeShutdown(Windows.Threading.DispatcherPriority.Background)       
 

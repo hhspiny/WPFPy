@@ -3,7 +3,7 @@
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
        Title="WPFPyFrameWork" Height="300" Width="300"> 
        <Grid>
-        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="80,37,0,0" TextWrapping="Wrap" Text="{Binding Mine}" VerticalAlignment="Top" Height="33" Width="129"/>
+        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="80,37,0,0" TextWrapping="Wrap" Text="{Binding Title, FallbackValue=Original}" VerticalAlignment="Top" Height="33" Width="129"/>
         <Label x:Name="label" Content="Label" HorizontalAlignment="Left" Height="27" Margin="69,204,0,0" VerticalAlignment="Top" Width="115"/>
         <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="109,125,0,0" VerticalAlignment="Top" Width="75"/>
     </Grid>

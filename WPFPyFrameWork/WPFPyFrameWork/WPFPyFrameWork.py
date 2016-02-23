@@ -12,53 +12,41 @@
 
 import clr
 from WPFWindow import *
-from System import TimeSpan, Windows, Threading
+from System import TimeSpan, Windows, Threading, Dynamic 
 
-class WPFPyFrameWorkViewModel(WPFViewModel):
-    def __init__(self, w):
-        super(WPFPyFrameWorkViewModel, self).__init__(w)
-        self.textBlockContent = "Window "+ self.WPFWindow.Window.Title
-
-class MyData(System.Object):
-   def __init__(self):
-      self.text = 'Initial text'
-   @property
-   def Mine(self): 
-        print "here"
-        return self.text
-   @Mine.setter
-   def Mine(self, value): 
-        print "2"
-        self.text = value
 
 class WPFPyFrameWork(WPFWindow):
-    def __init__(self,                          show=True , 
-                                                ownThread = False, 
-                                                attachThread = False, 
-                                                modal = False):
+    def __init__(self, 
+                 dataContext = None, application = None,
+                 ownThread = False, attachThread = False,
+                 show=True ,modal = False):
 
-        super(WPFPyFrameWork, self).__init__(xamlFile = "WPFPyFrameWork.xaml", 
-                                                show=show , 
-                                                ownThread = ownThread, 
-                                                attachThread = attachThread, 
-                                                modal = modal)
+        super(WPFPyFrameWork, self).__init__("WPFPyFrameWork.xaml",
+                 dataContext = dataContext, application = application,
+                 ownThread = ownThread, attachThread = attachThread,
+                 show=show ,modal = modal)
 
-    def __InitDataContext__(self):
-#        self.ViewModel =  WPFPyFrameWorkViewModel(self)
-#        self.Window.textBlockContent = "Window "+ self.Window.Title
-        student = MyData()
-        self.Window.DataContext = student
-        
+    def DefineDataBinding(self):
+        super(WPFPyFrameWork,self).DefineDataBinding()
+        #self.Data.Title = System.Text.StringBuilder ("First Title")
+        #self.Data.BindingTo("Title", self.Data.Title)
 
-    def __InitCustomizeControls__(self):
+        self.Data.Title = self.Data.CreateBinding("Title",System.Text.StringBuilder("First Title"))
+        self.Data.Title.Clear()      
+        self.Data.Title.Append("Second Title")
+        print self.Data.Title
+                 
+    def CustomizeWindow(self):
     # override base class method, execute in self.Window thread context
-            self.Controls.button.Click += self.ButtonClick
+        super(WPFPyFrameWork,self).CustomizeWindow()
+        self.Controls.button.Click += self.ButtonClick
 
+
+#  ====  control action target method  ====
     def ButtonClick(self, s,e):
         self.Controls.textBlock.Text = "clicked by " + self.Window.Title
     
-    # any function that operates on self.Window that can be called from outside Window Thread
-    # should have @WPFWindow.WPFWindowThread decorator
+#  ===   public method to access window property, method, need to have @WPFWindow.WPFWindowThread decorator
     @WPFWindow.WPFWindowThread
     def ChangeWindowTitle(self, text1, text2):
         self.Window.Title = text1 + text2
@@ -69,16 +57,16 @@ def run():
         global myMainWindow1
         global myMainWindow2
         myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-        print myMainWindow1.ChangeWindowTitle("Window ","1")
+        myMainWindow1.ChangeWindowTitle("Window ","1")
         myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-        print myMainWindow2.ChangeWindowTitle("Window ","2")
+        myMainWindow2.ChangeWindowTitle("Window ","2")
         
         @WPFWindow.WPFWindowThread
         def ModifyWindowTitle(self, text):
             self.Window.Title = text
-            self.Controls.button.Text = "Now"
+            self.Controls.button.Text = "Modified by Main Program"
 
-        ModifyWindowTitle(myMainWindow1, "modified")
+        ModifyWindowTitle(myMainWindow1, "Modified by Main Program")
 
         return myMainWindow1
 
