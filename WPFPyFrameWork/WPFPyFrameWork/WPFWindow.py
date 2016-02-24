@@ -19,38 +19,41 @@ class WPFControlsInWindow(System.Object):
         else:
             return control
 
-class WPFDataContext(System.Object):
+class WPFViewModelData(System.Object):
+    ''' class to save all data binding to xaml, attributes can not be re-assigned to other references'''
+    def __init__(self):
+        pass
+
+        
+class WPFViewModel(System.Object):
     ''' surrogate for DataContext in format of ExpandoObject '''
     def __init__(self, window):
-        self.Context = System.Dynamic.ExpandoObject()
+        self.DataContext = System.Dynamic.ExpandoObject()
         self.Window = window
-
-    def CreateBinding(self, name, refobj):
-        ''' create a new attribute and bind the passed on object to the new attribute '''
-        if not hasattr(self, name):
-            setattr(self, name, refobj)
-        obj = getattr(self, name)        
-        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.Context, name, obj)   
-        return obj
+        self.Data = WPFViewModelData()
 
     def BindingTo(self, name, obj):
-        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.Context, name, obj)  
+        ''' create a new attribute and bind the passed on object to the new attribute '''
+        if not hasattr(self.Data, name):
+            setattr(self.Data, name, obj)
+        obj = getattr(self.Data, name)    
+        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.DataContext, name, obj)  
         return obj
-   
+
 class WPFWindow(System.Object):
     """
     Wrapper class for Systems.Window.Window class. 
     1. Create and save WPF/XAML window in self.Window 
     2. All methods that could access self.Window should be defined with decorator @WPFWindow.WPFWindowThread
-    3. DataContext Binding process 
+    3. DataContext/ViewModel Binding process 
     """
     
     def __init__(self, xamlFile,
-                 dataContext = None, application = None,
+                 viewModel = None, application = None,
                  ownThread = False, attachThread = False,
                  show=True ,modal = False):
         """ xamlFile:   xamlFile to create Window object
-            dataContext: provided WPFDataContext, if None auto-create with base class
+            viewModel: provided WPFViewModel that contains DataContext, if None auto-create with base class
             application: provided Application, if None auto-create with base class
             ownThread:  create a separate thread for this window
             attachThread: attach to the created window thread
@@ -58,7 +61,7 @@ class WPFWindow(System.Object):
             modal:      block input of other windows (in the same thread)
         """
         self.XamlFile=xamlFile
-        self.Data = dataContext
+        self.VM = viewModel
         self.Application = application
         self.ownThread = ownThread
         self.attachThread = attachThread
@@ -100,10 +103,10 @@ class WPFWindow(System.Object):
 
     def CreateDataContext(self):
         ''' create DataContext object and attach'''
-        if self.Data == None:
-            self.Data = WPFDataContext(self)
-        self.Data.Window = self
-        self.Window.DataContext = self.Data.Context
+        if self.VM == None:
+            self.VM = WPFViewModel(self)
+        self.VM.Window = self
+        self.Window.DataContext = self.VM.DataContext
         self.DefineDataBinding()
 
     def DefineDataBinding(self):

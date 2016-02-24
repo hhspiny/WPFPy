@@ -17,24 +17,22 @@ from System import TimeSpan, Windows, Threading, Dynamic
 
 class WPFPyFrameWork(WPFWindow):
     def __init__(self, 
-                 dataContext = None, application = None,
+                 viewModel = None, application = None,
                  ownThread = False, attachThread = False,
                  show=True ,modal = False):
 
         super(WPFPyFrameWork, self).__init__("WPFPyFrameWork.xaml",
-                 dataContext = dataContext, application = application,
+                 viewModel = viewModel, application = application,
                  ownThread = ownThread, attachThread = attachThread,
                  show=show ,modal = modal)
 
     def DefineDataBinding(self):
         super(WPFPyFrameWork,self).DefineDataBinding()
-        #self.Data.Title = System.Text.StringBuilder ("First Title")
-        #self.Data.BindingTo("Title", self.Data.Title)
-
-        self.Data.Title = self.Data.CreateBinding("Title",System.Text.StringBuilder("First Title"))
-        self.Data.Title.Clear()      
-        self.Data.Title.Append("Second Title")
-        print self.Data.Title
+        self.VM.Data.Title = self.VM.BindingTo("Title",System.Text.StringBuilder("First Title"))
+        self.VM.Data.Title.Clear()      
+        self.VM.Data.Title.Append("Second Title")
+        print "now change"
+        self.VM.Data.Title = "Third Title"
                  
     def CustomizeWindow(self):
     # override base class method, execute in self.Window thread context
@@ -58,8 +56,8 @@ def run():
         global myMainWindow2
         myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
         myMainWindow1.ChangeWindowTitle("Window ","1")
-        myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-        myMainWindow2.ChangeWindowTitle("Window ","2")
+#        myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+#        myMainWindow2.ChangeWindowTitle("Window ","2")
         
         @WPFWindow.WPFWindowThread
         def ModifyWindowTitle(self, text):
