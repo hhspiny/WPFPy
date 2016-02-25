@@ -23,8 +23,8 @@ class WPFViewModelData(System.Object):
     ''' class to save all data binding to xaml, attributes can not be re-assigned to other references
         be extremely careful, not to change reference pointer when assigning values for binded item
     '''
-    def __init__(self):
-        pass
+    def __init__(self, dataContext):
+        self.DataContext  = DataContext
 
         
 class WPFViewModel(System.Object):
@@ -32,10 +32,11 @@ class WPFViewModel(System.Object):
     def __init__(self, window):
         self.DataContext = System.Dynamic.ExpandoObject()
         self.Window = window
-        self.Data = WPFViewModelData()
+        self.Data = WPFViewModelData(self.DataContext)
 
     def BindingTo(self, name, obj):
-        ''' create a new attribute and bind the passed on object to the new attribute '''
+        ''' create a new attribute and bind the passed on object to the new attribute 
+        '''
         if not hasattr(self.Data, name):
             setattr(self.Data, name, obj)
         obj = getattr(self.Data, name)    
@@ -166,14 +167,16 @@ class WPFWindow(System.Object):
         ''' decorator to wrapper calls referencing self.Windo in thread safe call, the function itself should have WPFWindow object as first arg '''
         def wrapper(self, *args, **kwargs):
         # wrapper function to run within correct thread context of WPFWindow object (farg)
-            def delegate(param):
+            def delegate(msg):
             # the delegate function to be executed in self.Window Thread
             # since delegate() is defined with context of self.wrapper, it automatically has access to self
+            # another option is to use ExpandoObject to pass data -- data itself should be in native .Net type
                 retval = func(self, *(self._msg[0]),**(self._msg[1]))
                 self._msg[2] = retval
             
             # use self._msg to pass on parameters to delegate function
             self._msg = [args, kwargs, None]
+            
             if Threading.SynchronizationContext.Current == self.SyncContext:
             #   executing in WPFWindow's context
                 delegate(None)

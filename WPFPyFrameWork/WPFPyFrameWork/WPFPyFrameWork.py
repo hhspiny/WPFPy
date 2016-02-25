@@ -28,7 +28,7 @@ class WPFPyFrameWork(WPFWindow):
 
     def DefineDataBinding(self):
         super(WPFPyFrameWork,self).DefineDataBinding()
-        self.VM.Data.Title = self.VM.BindingTo("Title",System.Text.StringBuilder("First Title"))
+        self.VM.Data.Title = self.VM.BindingTo("Title", System.Text.StringBuilder("First Title"))
         self.VM.Data.Title.Clear()      
         self.VM.Data.Title.Append("Second Title")
                  
