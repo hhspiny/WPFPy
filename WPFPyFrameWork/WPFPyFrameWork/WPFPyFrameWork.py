@@ -31,8 +31,6 @@ class WPFPyFrameWork(WPFWindow):
         self.VM.Data.Title = self.VM.BindingTo("Title",System.Text.StringBuilder("First Title"))
         self.VM.Data.Title.Clear()      
         self.VM.Data.Title.Append("Second Title")
-        print "now change"
-        self.VM.Data.Title = "Third Title"
                  
     def CustomizeWindow(self):
     # override base class method, execute in self.Window thread context

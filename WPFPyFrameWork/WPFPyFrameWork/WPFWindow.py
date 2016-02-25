@@ -20,7 +20,9 @@ class WPFControlsInWindow(System.Object):
             return control
 
 class WPFViewModelData(System.Object):
-    ''' class to save all data binding to xaml, attributes can not be re-assigned to other references'''
+    ''' class to save all data binding to xaml, attributes can not be re-assigned to other references
+        be extremely careful, not to change reference pointer when assigning values for binded item
+    '''
     def __init__(self):
         pass
 
