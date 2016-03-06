@@ -7,60 +7,50 @@ from System import TimeSpan
 
 
 class WPFWindowControl(System.Object):
-    ''' surrogate for controls in self.Window in WPFWindow to access controls by name
-        to overcome difficulty of not able to derive .Net object Windows.Window
-        __attr is assumed to be class's own attributes
+    ''' surrogate for Window.Control object to provide direct access to it
     '''
     def __init__(self, window):
-        self.__Window = window
+        self._Window = window
 
     def __getattr__(self, name):
-        control = self.__Window.FindName(name)
+        control = self._Window.FindName(name)
         if control == None:
-            raise AttributeError("%s window does not have %s control" % (self.__Window.Title, name))
+            raise AttributeError("%s window does not have %s control" % (self._Window.Title, name))
         else:
             return control
-
-class WPFWindowDataContext(System.Object):
-    ''' surrogate for ExpandoObject in self.Window.DataContext to access it via attribute
-        to overcome the difficulty of the need to access ExpandoObject via its .Net interface
-        __attr is assumed to be the class's own attributes
+ 
+class DotNetExpandoObject(System.Dynamic.ExpandoObject):
+    ''' Wrapper for ExpandoObject to allow pythonic access
+        ExpandoObject implements INotifyPropertyChanged for its properties
     '''
-    def __init__(self,dataContext):
-        self.__DataContext = dataContext
+    def __init__(self):
+        super(DotNetExpandoObject,self).__init__()
 
     def __getattr__(self,name):
-        if name[0] == '_':
-            return self.__getattribute__(name)
-        else:
             obj = None
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self.__DataContext)
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             ret = wrapped.TryGetValue(name, obj)
             if ret[0]:
                 return ret[1]
             else:
-                raise AttributeError, "%s has no attribute '%s'" % ("WPFWindow's DataContext", name)
+                raise AttributeError, "%s has no attribute '%s'" % ("WPFExpandoObject", name)
  
     def __setattr__(self,name,obj):
-       if name[0] == "_":
-        # class's own attribute, do not directly access __dict__ but access base class method to set attribute
-            super(WPFWindowDataContext,self).__setattr__(name,obj)
-       else:
         # DataContext's attribute
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self.__DataContext)
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             if wrapped.ContainsKey(name):
                 wrapped.set_Item(name, obj)
             else:
                 wrapped.Add(name, obj)
- 
 
 class WPFWindow(System.Object):
     """
     Wrapper class for Systems.Window.Window class. 
-    1. Create and save WPF/XAML window in self.Window 
-    2. All methods that could access self.Window should be defined with decorator @WPFWindow.WPFWindowThread
-    3. DataContext/ViewModel Binding process 
-    4. self.Window contains the actual WPF window object, but all controls should be access via self.Controls
+    1. Create and save WPF/XAML window in self.Window, and launch in a separate thread
+    2. All methods that could access self.Window object should be defined with decorator @WPFWindow.WPFWindowThread
+        to ensure thread safe
+    3. Bind Window.DataContext to class derived from ExpandoObject (implements INotifyPropertyChanged)
+    4. self.Window contains the WPF window object, but self.Controls acts as surrogate for access controls directly
     """
     
     def __init__(self, xamlFile,
@@ -117,16 +107,26 @@ class WPFWindow(System.Object):
         pass
 
     def CreateDataContext(self):
-        ''' create DataContext object as ExpandoObject, and bind to ViewModel'''
-        self.Window.DataContext = System.Dynamic.ExpandoObject()
-        self.DataContext = WPFWindowDataContext(self.Window.DataContext)
-        self.DefineDataBinding()
+        ''' To bind Window.DataContext to ExpandoObject, and have access to the obj via self.DataContext
+        '''
+        self.DataContext = DotNetExpandoObject()
+        self.Window.DataContext = self.DataContext
+        self.InitDataBinding()
+        # register eventhandler for DataContext changed event -- after all data binding are initialized
+        System.ComponentModel.INotifyPropertyChanged(self.DataContext).PropertyChanged += self.DataContextChanged
 
-    def DefineDataBinding(self):
+
+    def InitDataBinding(self):
         ''' to be overriden, explicitly define individual control data binding targets from xaml
+            recommend to explicit binding to initialize
         '''
         pass
-
+    
+    def DataContextChanged(self,s,e):
+        ''' Window.DataContext property changed event, to be overriden
+        '''
+        pass
+        
 
 # the following methods handle when the window requires its own thread 
 
