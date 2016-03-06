@@ -129,7 +129,6 @@ class WPFWindow(System.Object):
         
 
 # the following methods handle when the window requires its own thread 
-
     def CreateThread(self):
         ''' create a separate thread for the window during construction '''
         self.__evt = Threading.AutoResetEvent(False)
