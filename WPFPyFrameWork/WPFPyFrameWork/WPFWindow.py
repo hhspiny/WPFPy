@@ -6,42 +6,53 @@ from System import IO, Windows, Threading, ComponentModel
 from System import TimeSpan
 
 
-class WPFControlsInWindow(System.Object):
+class WPFWindowControl(System.Object):
     ''' surrogate for controls in self.Window in WPFWindow to access controls by name
+        to overcome difficulty of not able to derive .Net object Windows.Window
+        __attr is assumed to be class's own attributes
     '''
     def __init__(self, window):
-        self.Window = window
+        self.__Window = window
 
     def __getattr__(self, name):
-        control = self.Window.FindName(name)
+        control = self.__Window.FindName(name)
         if control == None:
-            raise AttributeError("%s does not have %s attribute/control" % (self.Window.Title, name))
+            raise AttributeError("%s window does not have %s control" % (self.__Window.Title, name))
         else:
             return control
 
-class WPFViewModelData(System.Object):
-    ''' class to save all data binding to xaml, attributes can not be re-assigned to other references
-        be extremely careful, not to change reference pointer when assigning values for binded item
+class WPFWindowDataContext(System.Object):
+    ''' surrogate for ExpandoObject in self.Window.DataContext to access it via attribute
+        to overcome the difficulty of the need to access ExpandoObject via its .Net interface
+        __attr is assumed to be the class's own attributes
     '''
-    def __init__(self, dataContext):
-        self.DataContext  = DataContext
+    def __init__(self,dataContext):
+        self.__DataContext = dataContext
 
-        
-class WPFViewModel(System.Object):
-    ''' surrogate for DataContext in format of ExpandoObject '''
-    def __init__(self, window):
-        self.DataContext = System.Dynamic.ExpandoObject()
-        self.Window = window
-        self.Data = WPFViewModelData(self.DataContext)
-
-    def BindingTo(self, name, obj):
-        ''' create a new attribute and bind the passed on object to the new attribute 
-        '''
-        if not hasattr(self.Data, name):
-            setattr(self.Data, name, obj)
-        obj = getattr(self.Data, name)    
-        System.Collections.Generic.IDictionary[System.String, System.Object].Add(self.DataContext, name, obj)  
-        return obj
+    def __getattr__(self,name):
+        if name[0] == '_':
+            return self.__getattribute__(name)
+        else:
+            obj = None
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self.__DataContext)
+            ret = wrapped.TryGetValue(name, obj)
+            if ret[0]:
+                return ret[1]
+            else:
+                raise AttributeError, "%s has no attribute '%s'" % ("WPFWindow's DataContext", name)
+ 
+    def __setattr__(self,name,obj):
+       if name[0] == "_":
+        # class's own attribute, do not directly access __dict__ but access base class method to set attribute
+            super(WPFWindowDataContext,self).__setattr__(name,obj)
+       else:
+        # DataContext's attribute
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self.__DataContext)
+            if wrapped.ContainsKey(name):
+                wrapped.set_Item(name, obj)
+            else:
+                wrapped.Add(name, obj)
+ 
 
 class WPFWindow(System.Object):
     """
@@ -49,6 +60,7 @@ class WPFWindow(System.Object):
     1. Create and save WPF/XAML window in self.Window 
     2. All methods that could access self.Window should be defined with decorator @WPFWindow.WPFWindowThread
     3. DataContext/ViewModel Binding process 
+    4. self.Window contains the actual WPF window object, but all controls should be access via self.Controls
     """
     
     def __init__(self, xamlFile,
@@ -98,22 +110,21 @@ class WPFWindow(System.Object):
     def InitControls(self):
         ''' initialize controls '''
         # to access controls in self.Windows
-        self.Controls =WPFControlsInWindow(self.Window)
+        self.Controls =WPFWindowControl(self.Window)
 
     def CustomizeWindow(self):
         ''' to be overriden, customize window before launching'''
         pass
 
     def CreateDataContext(self):
-        ''' create DataContext object and attach'''
-        if self.VM == None:
-            self.VM = WPFViewModel(self)
-        self.VM.Window = self
-        self.Window.DataContext = self.VM.DataContext
+        ''' create DataContext object as ExpandoObject, and bind to ViewModel'''
+        self.Window.DataContext = System.Dynamic.ExpandoObject()
+        self.DataContext = WPFWindowDataContext(self.Window.DataContext)
         self.DefineDataBinding()
 
     def DefineDataBinding(self):
-        ''' to be overriden, define individual control data binding targets from xaml'''
+        ''' to be overriden, explicitly define individual control data binding targets from xaml
+        '''
         pass
 
 

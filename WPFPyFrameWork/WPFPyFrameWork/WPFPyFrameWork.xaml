@@ -1,10 +1,13 @@
 ﻿<Window 
        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
-       Title="WPFPyFrameWork" Height="300" Width="300"> 
-       <Grid>
-        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="80,37,0,0" TextWrapping="Wrap" Text="{Binding Title, FallbackValue=Original}" VerticalAlignment="Top" Height="33" Width="129"/>
+       Title="WPFPyFrameWork" Height="300" Width="300">
+    <Grid>
+        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="45,37,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="33" Width="214" Text="{Binding textBlock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"><Run Text="Original"/></TextBlock>
         <Label x:Name="label" Content="Label" HorizontalAlignment="Left" Height="27" Margin="69,204,0,0" VerticalAlignment="Top" Width="115"/>
-        <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="109,125,0,0" VerticalAlignment="Top" Width="75"/>
+        <Button x:Name="button" Content="Button-1" HorizontalAlignment="Left" Margin="45,123,0,0" VerticalAlignment="Top" Width="75"/>
+        <Button x:Name="button1" Content="Button-2" HorizontalAlignment="Left" Margin="184,142,0,0" VerticalAlignment="Top" Width="75"/>
+        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="23" Margin="160,203,0,0" TextWrapping="Wrap" Text="{Binding textBox, FallbackValue=Original, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120"/>
+        <Button x:Name="button2" Content="Display" Margin="10,169,208.6,71.4" RenderTransformOrigin="0.848,1.874"/>
     </Grid>
 </Window> 
