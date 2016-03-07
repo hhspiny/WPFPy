@@ -84,12 +84,20 @@ class WPFWindow(System.Object):
     def initWindow(self):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
-            stream = IO.StreamReader(self.xamlFile)
-            stream = self.processXamlStream(stream.BaseStream)
-            self.window =  Windows.Markup.XamlReader.Load(stream)
+            inStream = IO.StreamReader(self.xamlFile)
+            outStream = self.processXamlStream(inStream.BaseStream)
+            self.window =  Windows.Markup.XamlReader.Load(outStream)
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
-            print "Error parsing XAML file %s" % self.xamlFile
+            print "Error parsing %s. Error %s" % (self.xamlFile, e.ToString())
+            raise
+        except Xaml.XamlXmlWriterException as e:
+            print e.ToString()
+            self.outStream.Position = 0
+            sr = IO.StreamReader(self.outStream)
+            str = sr.ReadToEnd()
+            self.f.close()
+            print "Content of Writer Stream : \n" +  str
             raise
 
         if self.showWindow: 
@@ -104,10 +112,19 @@ class WPFWindow(System.Object):
     def processXamlStream(self, inStream):
         ''' customized process of Xaml stream before passed to constructing Window
         '''
-        #xaml = Xaml.XamlXmlReader(IO.StreamReader(self.XamlFile))
-        #outStream = IO.MemoryStream()
-        outStream = inStream
-        return outStream
+        reader = Xaml.XamlXmlReader(inStream)
+        self.outStream = IO.MemoryStream()
+        writer = Xaml.XamlXmlWriter(self.outStream, reader.SchemaContext)
+        self.f=open("out.txt", 'w')
+        while reader.Read():
+            tmpStr = "%s : %s : %s : %s \n" % (
+            reader.NodeType,
+            reader.Type,
+            reader.Value,
+            reader.Member,)
+            self.f.write(tmpStr)
+            writer.WriteNode(reader)
+        return self.outStream
         
 
     def initControls(self):
