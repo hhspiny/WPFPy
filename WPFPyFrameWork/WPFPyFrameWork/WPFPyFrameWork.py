@@ -105,6 +105,7 @@ textBox.Data=%s
          self.dataContext.textBlock = "Outside - 2 : " + text1 + text2
     
 
+
             
 def run():
         import WPFPyFrameWork
