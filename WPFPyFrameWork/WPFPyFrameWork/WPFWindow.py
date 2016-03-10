@@ -5,7 +5,7 @@
 
 import clr, System
 clr.AddReference(r"wpf\PresentationFramework")
-from System import IO, Windows, Threading, ComponentModel, Xaml
+from System import IO, Windows, Threading, ComponentModel, Xaml, Xml
 from System import TimeSpan
 
 
@@ -105,7 +105,15 @@ class WPFWindow(System.Object):
     def processXaml(self, inStream):
         ''' customized process of Xaml stream loading
         '''
-        return inStream.BaseStream
+        try:
+            xdoc = Xml.Linq.XDocument.Load(inStream)
+            outStream = IO.MemoryStream()
+            xdoc.Save(outStream)
+            print outStream.ToString()
+            return outStream
+        except AttributeError as e:
+            print e     
+            raise
 
 
 
