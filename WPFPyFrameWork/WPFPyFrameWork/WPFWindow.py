@@ -106,16 +106,37 @@ class WPFWindow(System.Object):
         '''
         return inStream
         inReader = Xaml.XamlXmlReader(inStream)
-        nodeList = Xaml.XamlNodeList(inReader.SchemaContext)
+        schemaContext = Xaml.XamlSchemaContext()
+        nodeList = Xaml.XamlNodeList(schemaContext)
+        self.f=open("out1.txt",'w')
         while inReader.Read():
             tmpStr = "%s : %s : %s : %s \n" % (
             inReader.NodeType,
             inReader.Type,
             inReader.Value,
             inReader.Member)
+            self.f.write(tmpStr)
             nodeList.Writer.WriteNode(inReader)
+        self.f.close()
         nodeList.Writer.Close()
+
         outReader = nodeList.GetReader()
+        outText = IO.StreamWriter("out.xaml")
+        outStream = Xaml.XamlXmlWriter(outText,schemaContext)
+
+        self.f=open("out2.txt",'w')
+        while outReader.Read():
+            tmpStr = "%s : %s : %s : %s \n" % (
+            outReader.NodeType,
+            outReader.Type,
+            outReader.Value,
+            outReader.Member)
+            self.f.write(tmpStr)
+            outStream.WriteNode(outReader)
+        self.f.close()
+        outStream.Close()
+        outText.Close()
+        return outReader
         
 
     def initControls(self):
