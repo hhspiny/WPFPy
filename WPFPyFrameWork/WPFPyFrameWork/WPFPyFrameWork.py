@@ -104,6 +104,7 @@ textBox.Data=%s
          ''' 
          self.dataContext.textBlock = "Outside - 2 : " + text1 + text2
     
+    
 
 
             

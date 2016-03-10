@@ -85,12 +85,13 @@ class WPFWindow(System.Object):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
             inStream = IO.StreamReader(self.xamlFile)
-            processedStream = self.processXamlStream(inStream.BaseStream)
-            self.window =  Windows.Markup.XamlReader.Load(processedStream)
+            processedStream = self.processXaml(inStream)
+            self.window = Windows.Markup.XamlReader.Load(processedStream)
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing %s. Error %s" % (self.xamlFile, e.ToString())
             raise
+
 
         if self.showWindow: 
             if self.modal:
@@ -101,43 +102,12 @@ class WPFWindow(System.Object):
         self.customizeWindow()
         self.createDataContext()
 
-    def processXamlStream(self, inStream):
-        ''' customized process of Xaml stream before passed to constructing Window
+    def processXaml(self, inStream):
+        ''' customized process of Xaml stream loading
         '''
-        return inStream
-        inReader = Xaml.XamlXmlReader(inStream)
-        schemaContext = Xaml.XamlSchemaContext()
-        nodeList = Xaml.XamlNodeList(schemaContext)
-        self.f=open("out1.txt",'w')
-        while inReader.Read():
-            tmpStr = "%s : %s : %s : %s \n" % (
-            inReader.NodeType,
-            inReader.Type,
-            inReader.Value,
-            inReader.Member)
-            self.f.write(tmpStr)
-            nodeList.Writer.WriteNode(inReader)
-        self.f.close()
-        nodeList.Writer.Close()
+        return inStream.BaseStream
 
-        outReader = nodeList.GetReader()
-        outText = IO.StreamWriter("out.xaml")
-        outStream = Xaml.XamlXmlWriter(outText,schemaContext)
 
-        self.f=open("out2.txt",'w')
-        while outReader.Read():
-            tmpStr = "%s : %s : %s : %s \n" % (
-            outReader.NodeType,
-            outReader.Type,
-            outReader.Value,
-            outReader.Member)
-            self.f.write(tmpStr)
-            outStream.WriteNode(outReader)
-        self.f.close()
-        outStream.Close()
-        outText.Close()
-        return outReader
-        
 
     def initControls(self):
         ''' initialize controls '''
