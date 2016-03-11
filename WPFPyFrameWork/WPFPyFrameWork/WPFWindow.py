@@ -85,11 +85,19 @@ class WPFWindow(System.Object):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
             inStream = IO.StreamReader(self.xamlFile)
-            processedStream = self.processXaml(inStream)
-            self.window = Windows.Markup.XamlReader.Load(processedStream)
+            xdoc = Xml.Linq.XDocument.Load(inStream)
+            self.processXaml(xdoc)
+            outStream = IO.MemoryStream()
+            xdoc.Save(outStream)
+            outStream.Seek(0,IO.SeekOrigin.Begin)
+            self.window = Windows.Markup.XamlReader.Load(outStream)
+            outStream.Close()
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing %s. Error %s" % (self.xamlFile, e.ToString())
+            raise
+        except NameError as e:
+            print e     
             raise
 
 
@@ -102,18 +110,11 @@ class WPFWindow(System.Object):
         self.customizeWindow()
         self.createDataContext()
 
-    def processXaml(self, inStream):
-        ''' customized process of Xaml stream loading
+    def processXaml(self, xdoc):
+        ''' customized Xaml file in XDocument object
         '''
-        try:
-            xdoc = Xml.Linq.XDocument.Load(inStream)
-            outStream = IO.MemoryStream()
-            xdoc.Save(outStream)
-            print outStream.ToString()
-            return outStream
-        except AttributeError as e:
-            print e     
-            raise
+        return
+
 
 
 
