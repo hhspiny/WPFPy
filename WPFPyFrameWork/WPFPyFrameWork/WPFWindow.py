@@ -36,7 +36,7 @@ class DotNetExpandoObject(System.Dynamic.ExpandoObject):
             if ret[0]:
                 return ret[1]
             else:
-                raise AttributeError, "%s has no attribute '%s'" % ("WPFExpandoObject", name)
+                raise AttributeError, "%s has no attribute '%s'" % ("DotNetExpandoObject", name)
  
     def __setattr__(self,name,obj):
         # DataContext's attribute
@@ -106,11 +106,14 @@ class WPFWindow(System.Object):
             else:
                 self.window.Show()
 
-        self.createDataContext()
-        self.createEventMapping()
-
-        self.initWindow()
-        self.customizeWindow()
+        try:
+            self.initWindow()
+            self.customizeWindow()
+            self.createEventMapping()
+            self.createDataContext()
+        except AttributeError as e:
+            print e
+            raise
 
     def processXaml(self, xdoc):
             ''' customized Xaml file in XDocument object to make Xaml suitable for dynamic loading. Remove any event binding
@@ -141,6 +144,7 @@ class WPFWindow(System.Object):
         '''
         self.dataContext = DotNetExpandoObject()
         self.window.DataContext = self.dataContext
+        self.initDataBinding()
         self.customDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
         System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
@@ -152,12 +156,18 @@ class WPFWindow(System.Object):
         for key in self.eventTable.keys():
             control = self.window.FindName(key)
             for item in self.eventTable[key]:
-                action = item[0]
+                event = item[0]
                 method = item[1]
-#                import inspect
-#                print inspect.getmembers(contrl)
-#                if "method" exists:
-#                    control."action" += "method"
+                try:
+                    eventObj = getattr(control,event.ToString())
+                except AttributeError as e:
+                    print e     
+                    raise
+                try:
+                    methodObj = getattr(self, method)
+                    eventObj += methodObj
+                except AttributeError:
+                    pass
 
         self.customEventMapping()
 
@@ -169,6 +179,11 @@ class WPFWindow(System.Object):
 
     def customizeWindow(self):
         ''' to be overriden, customize window before launching'''
+        pass
+
+    def initDataBinding(self):
+        ''' to be overriden, initialize data binding and set initial values
+        '''
         pass
 
     def customDataBinding(self):

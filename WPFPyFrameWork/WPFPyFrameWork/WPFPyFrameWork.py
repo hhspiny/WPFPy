@@ -26,8 +26,8 @@ class WPFPyFrameWork(WPFWindow):
                  ownThread = ownThread, attachThread = attachThread,
                  show=show ,modal = modal)
 
-    def customDataBinding(self):
-        super(WPFPyFrameWork,self).customDataBinding()
+    def initDataBinding(self):
+        super(WPFPyFrameWork,self).initDataBinding()
         self.dataContext.textBlock = "First Text-1"      
         self.dataContext.textBox = "Line - 1" 
         self.dataContext.label = " Initial "
@@ -35,9 +35,6 @@ class WPFPyFrameWork(WPFWindow):
     def customEventMapping(self):
     # override base class method, execute in self.window thread context
         super(WPFPyFrameWork,self).customEventMapping()
-        self.controls.button.Click += self.button_Click
-        self.controls.button1.Click += self.button1_Click
-        self.controls.button2.Click += self.button2_Click1
 
     def dataContextChanged(self, s, e):
         super(WPFPyFrameWork, self).dataContextChanged(s, e)
@@ -103,6 +100,7 @@ textBox.Data=%s
         pass
     
     def button2_KeyDown(self, sender, e):
+        self.dataContext.textBox = "Key Down"
         pass
     
 
