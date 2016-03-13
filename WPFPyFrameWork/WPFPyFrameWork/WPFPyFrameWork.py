@@ -31,10 +31,6 @@ class WPFPyFrameWork(WPFWindow):
         self.dataContext.textBlock = "First Text-1"      
         self.dataContext.textBox = "Line - 1" 
         self.dataContext.label = " Initial "
-   
-    def customEventMapping(self):
-    # override base class method, execute in self.window thread context
-        super(WPFPyFrameWork,self).customEventMapping()
 
     def dataContextChanged(self, s, e):
         super(WPFPyFrameWork, self).dataContextChanged(s, e)
@@ -62,7 +58,6 @@ textBox.Data=%s
         ''' 
         self.window.Title = text1 + text2
         self.controls.textBlock.Text = "Outside - 1 : " + text1 + text2
-
 
 #  ====  control event target method  ====
     def button2_Click1(self, sender, e):
@@ -113,21 +108,18 @@ def run():
         global myMainWindow1
         global myMainWindow2
         myMainWindow1 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-#        Threading.Thread.Sleep(18000)
-#        myMainWindow1.changeWindowTitle("Window ","1")
-#        Threading.Thread.Sleep(18000)
-#        myMainWindow1.changeWindowTitle2("Window ","2")
-
-#        myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
-#        myMainWindow2.changeWindowTitle("Window ","2")
-        
+        Threading.Thread.Sleep(5000)
+        myMainWindow1.changeWindowTitle("Window ","1")
+        Threading.Thread.Sleep(5000)
         @WPFWindow.WPFWindowThread
         def modifyWindowTitle(self, text):
             self.window.Title = text
             self.controls.button.Text = "Modified by Main Program"
+        modifyWindowTitle(myMainWindow1, "Modified by Main Program")
 
-#        ModifyWindowTitle(myMainWindow1, "Modified by Main Program")
-
+        myMainWindow2 = WPFPyFrameWork.WPFPyFrameWork(show=True , ownThread = True, attachThread = False,  modal = False)
+        myMainWindow2.changeWindowTitle("Window ","2")
+        
         return myMainWindow1
 
 if __name__ == "__main__":
