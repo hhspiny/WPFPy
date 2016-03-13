@@ -26,18 +26,18 @@ class WPFPyFrameWork(WPFWindow):
                  ownThread = ownThread, attachThread = attachThread,
                  show=show ,modal = modal)
 
-    def initDataBinding(self):
-        super(WPFPyFrameWork,self).initDataBinding()
+    def customDataBinding(self):
+        super(WPFPyFrameWork,self).customDataBinding()
         self.dataContext.textBlock = "First Text-1"      
         self.dataContext.textBox = "Line - 1" 
         self.dataContext.label = " Initial "
    
-    def customizeWindow(self):
+    def customEventMapping(self):
     # override base class method, execute in self.window thread context
-        super(WPFPyFrameWork,self).customizeWindow()
-        self.controls.button.Click += self.buttonClick
-        self.controls.button1.Click += self.button1Click
-        self.controls.button2.Click += self.button2_Click
+        super(WPFPyFrameWork,self).customEventMapping()
+        self.controls.button.Click += self.button_Click
+        self.controls.button1.Click += self.button1_Click
+        self.controls.button2.Click += self.button2_Click1
 
     def dataContextChanged(self, s, e):
         super(WPFPyFrameWork, self).dataContextChanged(s, e)
@@ -58,22 +58,17 @@ textBox.Data=%s
         if e.PropertyName != 'label':
             self.dataContext.label = tmpText
 
-#  ====  control action target method  ====
-    def buttonClick(self, s,e):
-        ''' modifiy window via direct access to object
-        '''
-        self.window.Title = "Second Title"
-        self.controls.textBlock.Text = "Second Text : " + self.window.Title
-        self.controls.textBox.Text = "Line - 2"
+#  ===   public method to access window property, method, need to have @WPFWindow.WPFWindowThread decorator
+    @WPFWindow.WPFWindowThread
+    def changeWindowTitle(self, text1, text2):
+        ''' outside method to change directly via control
+        ''' 
+        self.window.Title = text1 + text2
+        self.controls.textBlock.Text = "Outside - 1 : " + text1 + text2
 
-    def button1Click(self, s, e):
-         ''' modify window via data binding, be careful, do not assign new object
-         '''
 
-         self.dataContext.textBlock = "Third Text"
-         self.dataContext.textBox = "Line - 3"
-
-    def button2_Click(self, sender, e):
+#  ====  control event target method  ====
+    def button2_Click1(self, sender, e):
         tmpText = '''
 Click_Change
 Title: Title=%s
@@ -89,20 +84,26 @@ textBox.Data=%s
             self.dataContext.textBox
             )
         self.dataContext.label = tmpText
+        pass
+    
+    def button1_Click(self, sender, e):
+         ''' modify window via data binding, be careful, do not assign new object
+         '''
 
-#  ===   public method to access window property, method, need to have @WPFWindow.WPFWindowThread decorator
-    @WPFWindow.WPFWindowThread
-    def changeWindowTitle(self, text1, text2):
-        ''' outside method to change directly via control
-        ''' 
-        self.window.Title = text1 + text2
-        self.controls.textBlock.Text = "Outside - 1 : " + text1 + text2
-
-    @WPFWindow.WPFWindowThread
-    def changeWindowTitle2(self, text1, text2):
-         ''' outside method to change directly via data binding
-         ''' 
-         self.dataContext.textBlock = "Outside - 2 : " + text1 + text2
+         self.dataContext.textBlock = "Third Text"
+         self.dataContext.textBox = "Line - 3"
+         pass
+    
+    def button_Click(self, sender, e):
+        ''' modifiy window via direct access to object
+        '''
+        self.window.Title = "Second Title"
+        self.controls.textBlock.Text = "Second Text : " + self.window.Title
+        self.controls.textBox.Text = "Line - 2"
+        pass
+    
+    def button2_KeyDown(self, sender, e):
+        pass
     
 
     

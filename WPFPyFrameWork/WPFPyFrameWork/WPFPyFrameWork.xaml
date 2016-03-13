@@ -5,16 +5,16 @@
     <Grid Margin="1,0,-0.4,0.6">
         <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="45,37,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="33" Width="214" Text="{Binding textBlock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"><Run Text="Original"/></TextBlock>
         <Label x:Name="label" Content="{Binding label, FallbackValue=Original, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Height="207" Margin="240,273,0,0" VerticalAlignment="Top" Width="249"/>
-        <Button x:Name="button" Content="Button-1" HorizontalAlignment="Left" Margin="205,93,0,0" VerticalAlignment="Top" Width="75"/>
-        <Button x:Name="button1" Content="Button-2" HorizontalAlignment="Left" Margin="414,93,0,0" VerticalAlignment="Top" Width="75" />
+        <Button x:Name="button" Content="Button-1" HorizontalAlignment="Left" Margin="205,93,0,0" VerticalAlignment="Top" Width="75" Click="button_Click"/>
+        <Button x:Name="button1" Content="Button-2" HorizontalAlignment="Left" Margin="414,93,0,0" VerticalAlignment="Top" Width="75" Click="button1_Click" />
         <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="23" Margin="297,139,0,0" TextWrapping="Wrap" Text="{Binding textBox, FallbackValue=Original, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120"/>
-        <Button x:Name="button2" Content="Display" Margin="154,194,0,0" RenderTransformOrigin="0.5,0.5" Height="48" VerticalAlignment="Top" HorizontalAlignment="Left" Width="128">
+        <Button x:Name="button2" Content="Display" Margin="154,194,0,0" RenderTransformOrigin="0.5,0.5" Height="48" VerticalAlignment="Top" HorizontalAlignment="Left" Width="128" Click="button2_Click1" KeyDown="button2_KeyDown">
             <Button.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform/>
                     <SkewTransform/>
                     <RotateTransform Angle="0.201"/>
-                    <TranslateTransform X="136.873" Y="0.61156"/>
+                    <TranslateTransform X="136.873" Y="0.612"/>
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>

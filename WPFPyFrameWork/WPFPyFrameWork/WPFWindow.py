@@ -75,13 +75,15 @@ class WPFWindow(System.Object):
         self.attachThread = attachThread
         self.modal = modal
         self.showWindow = show
+        self.bindingTable = {}
+        self.eventTable = {}
 
         if self.ownThread:
             self.createThread()
         else:
-            self.initWindow()
+            self._initialize()
 
-    def initWindow(self):
+    def _initialize(self):
         ''' initialize window by creating window object from xaml file and call rest init methods '''
         try:
             inStream = IO.StreamReader(self.xamlFile)
@@ -91,60 +93,97 @@ class WPFWindow(System.Object):
             xdoc.Save(outStream)
             outStream.Seek(0,IO.SeekOrigin.Begin)
             self.window = Windows.Markup.XamlReader.Load(outStream)
+            self.controls =WPFWindowControl(self.window)
             outStream.Close()
         except System.Windows.Markup.XamlParseException as e:
         # need to test what exception gets thrown and print information
             print "Error parsing %s. Error %s" % (self.xamlFile, e.ToString())
             raise
-        except NameError as e:
-            print e     
-            raise
-
 
         if self.showWindow: 
             if self.modal:
                 self.window.ShowDialog()
             else:
                 self.window.Show()
-        self.initControls()
-        self.customizeWindow()
+
         self.createDataContext()
+        self.createEventMapping()
+
+        self.initWindow()
+        self.customizeWindow()
 
     def processXaml(self, xdoc):
-        ''' customized Xaml file in XDocument object
-        '''
-        return
+            ''' customized Xaml file in XDocument object to make Xaml suitable for dynamic loading. Remove any event binding
+                and establish eventTable to bind event to method later
+            '''
+            for elem in xdoc.Descendants():
+                # find out the events and build event handling table
+                name = None 
+                for attr in elem.Attributes():
+                    if "{http://schemas.microsoft.com/winfx/2006/xaml}Name" in attr.Name.ToString():
+                        name = str(attr.Value)
+                if name == None:
+                    continue
+                self.eventTable[name] = []
+                for attr in elem.Attributes():
+                # identify event by name pattern "name_event"
+                    tmpStr = name+"_"+attr.Name.ToString()
+                    if tmpStr in attr.Value:
+                           self.eventTable[name].append([attr.Name, attr.Value])
 
-
-
-
-    def initControls(self):
-        ''' initialize controls '''
-        # to access controls in self.windows
-        self.controls =WPFWindowControl(self.window)
-
-    def customizeWindow(self):
-        ''' to be overriden, customize window before launching'''
-        pass
+                for item in self.eventTable[name]:
+                    elem.Attribute(item[0]).Remove()
+                    pass
+            return
 
     def createDataContext(self):
         ''' To bind Window.DataContext to ExpandoObject, and have access to the obj via self.DataContext
         '''
         self.dataContext = DotNetExpandoObject()
         self.window.DataContext = self.dataContext
-        self.initDataBinding()
+        self.customDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
         System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
 
 
-    def initDataBinding(self):
+    def createEventMapping(self):
+        ''' To auto map control events to method
+        '''
+        for key in self.eventTable.keys():
+            control = self.window.FindName(key)
+            for item in self.eventTable[key]:
+                action = item[0]
+                method = item[1]
+#                import inspect
+#                print inspect.getmembers(contrl)
+#                if "method" exists:
+#                    control."action" += "method"
+
+        self.customEventMapping()
+
+#  === below are abstract method to be overriden in derived class to provide customized function === #        
+
+    def initWindow(self):
+        ''' to be overriden, initialize window before launching'''
+        pass
+
+    def customizeWindow(self):
+        ''' to be overriden, customize window before launching'''
+        pass
+
+    def customDataBinding(self):
         ''' to be overriden, explicitly define individual control data binding targets from xaml
             recommend to explicit binding to initialize
         '''
         pass
+
+    def customEventMapping(self):
+        ''' to be overriden, explicitly define event mapping
+        '''
+        pass
     
     def dataContextChanged(self,s,e):
-        ''' Window.DataContext property changed event, to be overriden
+        ''' to be overriden, Window.DataContext property changed event process
         '''
         pass
         
@@ -173,7 +212,7 @@ class WPFWindow(System.Object):
             self.syncContext =  Windows.Threading.DispatcherSynchronizationContext(Windows.Threading.Dispatcher.CurrentDispatcher)
             Threading.SynchronizationContext.SetSynchronizationContext(self.syncContext)    
         # add window close measurement  
-        self.initWindow()
+        self._initialize()
         self.window.Closed += self.threadShutdown
         self.__evt.Set()
 
