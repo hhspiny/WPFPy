@@ -42,15 +42,21 @@ class DotNetExpandoObject(System.Dynamic.ExpandoObject):
             if ret[0]:
                 return ret[1]
             else:
-                raise AttributeError, "%s has no attribute '%s'" % ("DotNetExpandoObject", name)
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
  
     def __setattr__(self,name,obj):
-        # DataContext's attribute
             wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             if wrapped.ContainsKey(name):
                 wrapped.set_Item(name, obj)
             else:
                 wrapped.Add(name, obj)
+
+    def __delattr__(self, name):
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            if wrapped.Remove(name):
+                return
+            else:
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
 
 class Window(System.Object):
     """
@@ -145,6 +151,7 @@ class Window(System.Object):
         ''' To bind Window.DataContext to ExpandoObject, and have access to the obj via self.DataContext
         '''
         self.dataContext = DotNetExpandoObject()
+#        self.dataContext = System.Dynamic.ExpandoObject()
         self.window.DataContext = self.dataContext
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
