@@ -23,7 +23,6 @@ class MyWindow(WPFPy.Window):
 
     def dataContextChanged(self, s, e):
         super(MyWindow, self).dataContextChanged(s, e)
-        print s, e
         if e.PropertyName == "inputText":
             self.dataContext.outputText = self.dataContext.inputText
 

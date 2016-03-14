@@ -18,7 +18,16 @@ class WindowControlSurrogate(System.Object):
             raise AttributeError("%s window does not have %s control" % (self._window.Title, name))
         else:
             return control
- 
+
+class ViewModel(System.ComponentModel.INotifyPropertyChanged):
+    ''' to implement the base class for view model, not possible yet as interface inherit not possible yet
+    '''
+    def __init__(self):
+        print "here"
+        self.propertyChangedHandlers = []
+    def add_PropertyChanged(self):
+        pass 
+
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access
         ExpandoObject implements INotifyPropertyChanged for its properties
@@ -64,7 +73,7 @@ class Window(System.Object):
             modal:          block input of other windows (in the same thread)
         """
         self.xamlFile=xamlFile
-        self.VM = viewModel
+#        self.VM = ViewModel()
         self.ownThread = ownThread
         self.attachThread = attachThread
         self.modal = modal
