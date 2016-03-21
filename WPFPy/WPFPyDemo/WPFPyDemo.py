@@ -3,10 +3,35 @@
 import clr, System
 import WPFPy
 
+class MyViewModel(WPFPy.ViewModel):
+    __namespace__ = "WPFPyDemo"
+    def __init__(self):
+        super(MyViewModel,self).__init__()
+        self._inputText = "Line - in"
+        self._outputText = "Line - out"
+    @property
+    def inputText(self):
+        return self._inputText
+    @inputText.setter
+    def inputText(self,value):
+        self._inputText = value
+        self.OnPropertyChanged("inputText")
+    @property
+    def outputText(self):
+        return self._outputText
+    @outputText.setter
+    def outputText(self,value):
+        self._outputText = value
+        self.OnPropertyChanged("outputText")
+
+
+
 class MyWindow(WPFPy.Window):
-    def __init__(self, ownThread = False, attachThread = False):
+    def __init__(self, ownThread = False, attachThread = False, viewModel = None):
 #        wpf.LoadComponent(self, 'WPFPyDemo.xaml')
-        super(MyWindow, self).__init__("WPFPyDemo.xaml", ownThread = ownThread, attachThread=attachThread)   
+        super(MyWindow, self).__init__("WPFPyDemo.xaml", 
+                ownThread = ownThread, attachThread=attachThread,
+                viewModel = viewModel)   
 
     @WPFPy.Window.windowThread
     # function exposed to outside of thread access
@@ -18,8 +43,8 @@ class MyWindow(WPFPy.Window):
 
     def initDataBinding(self):
         super(MyWindow, self).initDataBinding()
-        self.dataContext.inputText = "Line - 1"
-        self.dataContext.outputText = "Init Output"
+#        self.dataContext.inputText = "Line - 1"
+#        self.dataContext.outputText = "Init Output"
 
     def dataContextChanged(self, s, e):
         super(MyWindow, self).dataContextChanged(s, e)
@@ -29,7 +54,8 @@ class MyWindow(WPFPy.Window):
 if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-     w1 = MyWindow(ownThread=True)
+     vm = MyViewModel()  
+     w1 = MyWindow(ownThread=True, viewModel = MyViewModel)
      w1.changeWindowTitle("Window - 1")
 
 #     w2 = MyWindow(ownThread=True)

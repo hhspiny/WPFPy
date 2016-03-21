@@ -22,11 +22,17 @@ class WindowControlSurrogate(System.Object):
 class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     ''' to implement the base class for view model, not possible yet as interface inherit not possible yet
     '''
+    __namespace__ = "WPFPy"
+    PropertyChanged = None
     def __init__(self):
-        print "here"
-        self.propertyChangedHandlers = []
-    def add_PropertyChanged(self):
-        pass 
+        self.PropertyChanged, self._propertyChangedCaller = make_event()
+    def add_PropertyChanged(self, value):
+        self.PropertyChanged += value
+    def remove_PropertyChanged(self, value):
+        self.PropertyChanged -= value
+    def OnPropertyChanged(self, propertyName):
+        if self.PropertyChanged is not None:
+            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
 
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access
@@ -79,7 +85,7 @@ class Window(System.Object):
             modal:          block input of other windows (in the same thread)
         """
         self.xamlFile=xamlFile
-#        self.VM = ViewModel()
+        self.VM = viewModel()
         self.ownThread = ownThread
         self.attachThread = attachThread
         self.modal = modal
@@ -150,13 +156,13 @@ class Window(System.Object):
     def createDataContext(self):
         ''' To bind Window.DataContext to ExpandoObject, and have access to the obj via self.DataContext
         '''
-        self.dataContext = DotNetExpandoObject()
-#        self.dataContext = System.Dynamic.ExpandoObject()
-        self.window.DataContext = self.dataContext
+#        self.dataContext = DotNetExpandoObject()
+        self.window.DataContext = self.VM
+        self.dataContext = self.VM
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
-        System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
-
+#        System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
+        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
@@ -265,3 +271,75 @@ class Window(System.Object):
                 retval =  self._msg[2]
                 return retval
         return wrapper      
+
+
+
+
+# pyevent from IronPython
+class event(object):
+    """Provides CLR event-like functionality for Python.  This is a public
+    event helper that allows adding and removing handlers."""
+    __slots__ = ['handlers']
+        
+    def __init__(self):
+        self.handlers = []
+    
+    def __iadd__(self, other):
+        if issubclass(other.__class__, event):
+            self.handlers.extend(other.handlers)
+        elif issubclass(other.__class__, event_caller):
+            self.handlers.extend(other.event.handlers)
+        else:
+            if not callable(other):
+                raise TypeError, "cannot assign to event unless value is callable"
+            self.handlers.append(other)
+        return self
+        
+    def __isub__(self, other):
+        if issubclass(other.__class__, event):
+            newEv = []
+            for x in self.handlers:
+                if not other.handlers.contains(x):
+                    newEv.append(x)
+            self.handlers = newEv
+        elif issubclass(other.__class__, event_caller):
+            newEv = []
+            for x in self.event.handlers:
+                if not other.handlers.contains(x):
+                    newEv.append(x)
+            self.handlers = newEv
+        else:
+            if other in self.handlers:
+                self.handlers.remove(other)
+        return self
+
+    def make_caller(self):
+        return event_caller(self)
+
+class event_caller(object):
+    """Provides CLR event-like functionality for Python.  This is the
+    protected event caller that allows the owner to raise the event"""
+    __slots__ = ['event']
+    
+    def __init__(self, event):
+        self.event = event
+            
+    def __call__(self, *args):
+        for ev in self.event.handlers:
+            ev(args)
+
+    def __set__(self, val):
+        raise ValueError, "cannot assign to an event, can only add or remove handlers"
+    
+    def __delete__(self, val):
+        raise ValueError, "cannot delete an event, can only add or remove handlers"
+
+    def __get__(self, instance, owner):
+        return self
+def make_event():
+    """Creates an event object tuple.  The first value in the tuple can be
+    exposed to allow external code to hook and unhook from the event.  The
+    second value can be used to raise the event and can be stored in a
+    private variable."""
+    res = event()
+    return (res, res.make_caller())
