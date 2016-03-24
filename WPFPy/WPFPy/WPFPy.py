@@ -26,10 +26,13 @@ class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     PropertyChanged = None
     def __init__(self):
         self.PropertyChanged, self._propertyChangedCaller = make_event()
+    @clrmethod(None, [str])
     def add_PropertyChanged(self, value):
         self.PropertyChanged += value
+    @clrmethod(int, [str])
     def remove_PropertyChanged(self, value):
         self.PropertyChanged -= value
+    @clrmethod(int, [str])
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged is not None:
             self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
