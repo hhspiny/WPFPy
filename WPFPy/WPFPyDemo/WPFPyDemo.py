@@ -3,11 +3,12 @@
 import clr, System
 import WPFPy
 
-class MyViewModel(WPFPy.ViewModel):
-#class MyViewModel(System.Object):
+#class MyViewModel(WPFPy.ViewModel):
+class MyViewModel(System.Object):
+#class MyViewModel(System.ComponentModel.INotifyPropertyChanged):
     __namespace__ = "WPFPyDemo"
     def __init__(self):
-        super(MyViewModel,self).__init__()
+#        super(MyViewModel,self).__init__()
         self._inputText = "Line - in"
         self._outputText = "Line - out"
 
