@@ -23,19 +23,42 @@ class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     ''' to implement the base class for view model, not possible yet as interface inherit not possible yet
     '''
     __namespace__ = "WPFPy"
-    PropertyChanged = None
+#    @clr.clrproperty
+#    PropertyChanged = None
     def __init__(self):
         self.PropertyChanged, self._propertyChangedCaller = make_event()
-    @clrmethod(None, [str])
+#    @clr.clrmethod(None, [str])
     def add_PropertyChanged(self, value):
         self.PropertyChanged += value
-    @clrmethod(None, [str])
+#    @clr.clrmethod(None, [str])
     def remove_PropertyChanged(self, value):
         self.PropertyChanged -= value
-    @clrmethod(None, [str])
+#    @clr.clrmethod(None, [str])
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged is not None:
             self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
+
+class notify_property(property):
+    ''' decorator to auto get and set property for INotifyPropertyChanged interface
+    '''
+    def __init__(self, getter):
+        def newgetter(slf):
+            try:
+                return getter(slf)
+            except AttributeError:
+                return None
+        super(notify_property, self).__init__(newgetter)
+    def setter(self, setter):
+        def newsetter(slf, newvalue):
+            oldvalue = self.fget(slf)
+            if oldvalue != newvalue:
+                setter(slf, newvalue)
+                slf.OnPropertyChanged(setter.__name__)
+        return property(
+            fget=self.fget,
+            fset=newsetter,
+            fdel=self.fdel,
+            doc=self.__doc__)
 
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access
@@ -88,7 +111,7 @@ class Window(System.Object):
             modal:          block input of other windows (in the same thread)
         """
         self.xamlFile=xamlFile
-        self.VM = viewModel()
+        self.VM = viewModel
         self.ownThread = ownThread
         self.attachThread = attachThread
         self.modal = modal
@@ -165,7 +188,7 @@ class Window(System.Object):
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
 #        System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
-        self.VM.PropertyChanged +=self.dataContextChanged
+#        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
