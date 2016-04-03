@@ -19,8 +19,7 @@ class WindowControlSurrogate(System.Object):
         else:
             return control
 
-#class ViewModel(System.ComponentModel.INotifyPropertyChanged):
-class ViewModel(System.Object):
+class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     ''' this does not work. PropertyChanged event can not be implemented yet'''
     __namespace__ = "WPFPy"
 #    PropertyChanged = None
@@ -68,12 +67,11 @@ class DotNetExpandoObject(System.Dynamic.ExpandoObject):
                 raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
 
 class Window(System.Object):
-    """
-    Wrapper class for Systems.Window.Window class. 
+    '''Wrapper class for Systems.Window.Window class. 
     1. Create WPF/XAML window in self.window, and launch in a separate thread. provide self.controls to access controls
     2. Provide decorator @WPFWindow.WPFWindowThread for thread aware direct access to self.window object
     3. Bind self.window.DataContext a surrogate class derived from ExpandoObject
-    """
+    '''
     
     def __init__(self, xamlFile,
                 ownThread = False, attachThread = False,
