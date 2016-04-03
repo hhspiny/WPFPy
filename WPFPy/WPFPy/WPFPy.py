@@ -19,35 +19,23 @@ class WindowControlSurrogate(System.Object):
         else:
             return control
 
-class BViewModel(System.ComponentModel.INotifyPropertyChanged):
+#class ViewModel(System.ComponentModel.INotifyPropertyChanged):
+class ViewModel(System.Object):
+    ''' this does not work. PropertyChanged event can not be implemented yet'''
     __namespace__ = "WPFPy"
-#    @clr.clrproperty
 #    PropertyChanged = None
     def __init__(self):
         super(ViewModel, self).__init__()
-#        self.PropertyChanged, self._propertyChangedCaller = make_event()
-    #@clr.clrmethod(None, [str])
-    #def add_PropertyChanged(self, value):
-    #    self.PropertyChanged += value
-    #@clr.clrmethod(None, [str])
-    #def remove_PropertyChanged(self, value):
-    #    self.PropertyChanged -= value
+        self.PropertyChanged, self._propertyChangedCaller = make_event()
 #    @clr.clrmethod(None, [str])
+    def add_PropertyChanged(self, value):
+        self.PropertyChanged += value
+#    @clr.clrmethod(None, [str])
+    def remove_PropertyChanged(self, value):
+        self.PropertyChanged -= value
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged != None:
-            PropertyChanged(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-#            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-
-#class ViewModel(System.ComponentModel.INotifyPropertyChanged):
-class ViewModel(System.Object):
-    __namespace__ = "WPFPy"
-    def __init__(self):
-        super(ViewModel, self).__init__()
-        self.PropertyChanged = System.ComponentModel.PropertyChangedEventHandler
-    def OnPropertyChanged(self, propertyName):
-        if self.PropertyChanged != None:
-            self.PropertyChanged(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-
+           self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
 
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access
@@ -169,15 +157,18 @@ class Window(System.Object):
         return
 
     def createDataContext(self):
-        ''' To bind Window.DataContext to ExpandoObject, and have access to the obj via self.DataContext
+        ''' To bind Window.DataContext to a class with INotifyPropertyChanged interface implemented
+        ExpandoObject is also an option
         '''
-#        self.VM = DotNetExpandoObject()
+
+        if self.VM == None:
+            self.VM = ViewModel()
+#           self.VM = DotNetExpandoObject()
         self.window.DataContext = self.VM
-        self.dataContext = self.VM
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
-#        System.ComponentModel.INotifyPropertyChanged(self.dataContext).PropertyChanged += self.dataContextChanged
-#        self.VM.PropertyChanged +=self.dataContextChanged
+#        System.ComponentModel.INotifyPropertyChanged(self.VM).PropertyChanged += self.dataContextChanged
+        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
@@ -286,9 +277,6 @@ class Window(System.Object):
                 retval =  self._msg[2]
                 return retval
         return wrapper      
-
-
-
 
 # pyevent from IronPython
 class event(object):
