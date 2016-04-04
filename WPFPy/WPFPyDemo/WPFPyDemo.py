@@ -39,7 +39,8 @@ class MyWindow(WPFPy.Window):
         self.window.Title = title
     
     def display_button_Click(self, sender, e):
-            self.dataContext.outputText = self.dataContext.inputText + "\n" + self.window.Title
+        self.VM.outputText = "Changed"
+#            self.VM.outputText = self.VM.inputText + "\n" + self.window.Title
 
     def initDataBinding(self):
         super(MyWindow, self).initDataBinding()
@@ -54,7 +55,7 @@ class MyWindow(WPFPy.Window):
 if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-     vm = MyViewModel()
+     vm = WPFPy.ViewModel()
      w1 = MyWindow(ownThread=True, viewModel = vm)
      w1.changeWindowTitle("Window - 1")
 

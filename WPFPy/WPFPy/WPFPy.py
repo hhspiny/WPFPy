@@ -21,19 +21,34 @@ class WindowControlSurrogate(System.Object):
 
 class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     ''' this does not work. PropertyChanged event can not be implemented yet'''
-    __namespace__ = "ViewModel"
-    PropertyChanged == None
+    __namespace__ = "viewModel"
     def __init__(self):
         super(ViewModel, self).__init__()
         self.PropertyChanged, self._propertyChangedCaller = make_event()
 
-    @clr.clrmethod(None, [System.ComponentModel.PropertyChangedEventHandler])
+    # test code
+        self._inputText = "Line - in"
+        self._outputText = "Line - out"
+    @clr.clrproperty(str)
+    def inputText(self):
+        return self._inputText
+    @inputText.setter
+    def inputText(self,value):
+        self._inputText = value
+        self.OnPropertyChanged("inputText") 
+    @clr.clrproperty(str)
+    def outputText(self):
+        return self._outputText
+    @outputText.setter
+    def outputText(self,value):
+        self._outputText = value
+        self.OnPropertyChanged("outputText")
+    # test code
+
     def add_PropertyChanged(self, value):
         self.PropertyChanged += value
-    @clr.clrmethod(None, [System.ComponentModel.PropertyChangedEventHandler])
     def remove_PropertyChanged(self, value):
         self.PropertyChanged -= value
-
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged != None:
            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
@@ -331,6 +346,7 @@ class event_caller(object):
             
     def __call__(self, *args):
         for ev in self.event.handlers:
+            print ev, args
             ev(args)
 
     def __set__(self, val):
