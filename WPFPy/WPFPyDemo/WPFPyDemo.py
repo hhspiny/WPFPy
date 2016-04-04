@@ -4,7 +4,7 @@ import clr, System
 import WPFPy
 
 class MyViewModel(WPFPy.ViewModel):
-    __namespace__ = "WPFPyDemo"
+    __namespace__ = "ViewModel"
     def __init__(self):
         super(MyViewModel,self).__init__()
         self._inputText = "Line - in"
@@ -54,7 +54,7 @@ class MyWindow(WPFPy.Window):
 if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-     vm = MyViewModel()  
+     vm = MyViewModel()
      w1 = MyWindow(ownThread=True, viewModel = vm)
      w1.changeWindowTitle("Window - 1")
 

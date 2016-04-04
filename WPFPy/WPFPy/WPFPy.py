@@ -21,20 +21,23 @@ class WindowControlSurrogate(System.Object):
 
 class ViewModel(System.ComponentModel.INotifyPropertyChanged):
     ''' this does not work. PropertyChanged event can not be implemented yet'''
-    __namespace__ = "WPFPy"
-#    PropertyChanged = None
+    __namespace__ = "ViewModel"
+    PropertyChanged == None
     def __init__(self):
         super(ViewModel, self).__init__()
         self.PropertyChanged, self._propertyChangedCaller = make_event()
-#    @clr.clrmethod(None, [str])
+
+    @clr.clrmethod(None, [System.ComponentModel.PropertyChangedEventHandler])
     def add_PropertyChanged(self, value):
         self.PropertyChanged += value
-#    @clr.clrmethod(None, [str])
+    @clr.clrmethod(None, [System.ComponentModel.PropertyChangedEventHandler])
     def remove_PropertyChanged(self, value):
         self.PropertyChanged -= value
+
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged != None:
            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
+
 
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access
@@ -166,7 +169,7 @@ class Window(System.Object):
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
 #        System.ComponentModel.INotifyPropertyChanged(self.VM).PropertyChanged += self.dataContextChanged
-        self.VM.PropertyChanged +=self.dataContextChanged
+#        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
@@ -280,6 +283,7 @@ class Window(System.Object):
 class event(object):
     """Provides CLR event-like functionality for Python.  This is a public
     event helper that allows adding and removing handlers."""
+    __namespace__ = "event"
     __slots__ = ['handlers']
         
     def __init__(self):
