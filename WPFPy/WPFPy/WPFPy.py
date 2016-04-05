@@ -6,83 +6,6 @@
 import clr, System
 clr.AddReference(r"wpf\PresentationFramework")
 
-class WindowControlSurrogate(System.Object):
-    ''' surrogate for Window.Control object to provide direct access
-    '''
-    def __init__(self, window):
-        self._window = window
-
-    def __getattr__(self, name):
-        control = self._window.FindName(name)
-        if control == None:
-            raise AttributeError("%s window does not have %s control" % (self._window.Title, name))
-        else:
-            return control
-
-class ViewModel(System.ComponentModel.INotifyPropertyChanged):
-    ''' this does not work. PropertyChanged event can not be implemented yet'''
-    __namespace__ = "viewModel"
-    def __init__(self):
-        super(ViewModel, self).__init__()
-        self.PropertyChanged, self._propertyChangedCaller = make_event()
-
-    # test code
-        self._inputText = "Line - in"
-        self._outputText = "Line - out"
-    @clr.clrproperty(str)
-    def inputText(self):
-        return self._inputText
-    @inputText.setter
-    def inputText(self,value):
-        self._inputText = value
-        self.OnPropertyChanged("inputText") 
-    @clr.clrproperty(str)
-    def outputText(self):
-        return self._outputText
-    @outputText.setter
-    def outputText(self,value):
-        self._outputText = value
-        self.OnPropertyChanged("outputText")
-    # test code
-
-    def add_PropertyChanged(self, value):
-        self.PropertyChanged += value
-    def remove_PropertyChanged(self, value):
-        self.PropertyChanged -= value
-    def OnPropertyChanged(self, propertyName):
-        if self.PropertyChanged != None:
-           self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-
-
-class DotNetExpandoObject(System.Dynamic.ExpandoObject):
-    ''' Wrapper for ExpandoObject to allow pythonic access
-        ExpandoObject implements INotifyPropertyChanged for its properties
-    '''
-    def __init__(self):
-        super(DotNetExpandoObject,self).__init__()
-
-    def __getattr__(self,name):
-            obj = None
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            ret = wrapped.TryGetValue(name, obj)
-            if ret[0]:
-                return ret[1]
-            else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
- 
-    def __setattr__(self,name,obj):
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            if wrapped.ContainsKey(name):
-                wrapped.set_Item(name, obj)
-            else:
-                wrapped.Add(name, obj)
-
-    def __delattr__(self, name):
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            if wrapped.Remove(name):
-                return
-            else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
 
 class Window(System.Object):
     '''Wrapper class for Systems.Window.Window class. 
@@ -184,7 +107,7 @@ class Window(System.Object):
         self.initDataBinding()
         # register eventhandler for DataContext changed event -- after all data binding are initialized
 #        System.ComponentModel.INotifyPropertyChanged(self.VM).PropertyChanged += self.dataContextChanged
-#        self.VM.PropertyChanged +=self.dataContextChanged
+        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
@@ -294,6 +217,57 @@ class Window(System.Object):
                 return retval
         return wrapper      
 
+class WindowControlSurrogate(System.Object):
+    ''' surrogate for Window.Control object to provide direct access
+    '''
+    def __init__(self, window):
+        self._window = window
+
+    def __getattr__(self, name):
+        control = self._window.FindName(name)
+        if control == None:
+            raise AttributeError("%s window does not have %s control" % (self._window.Title, name))
+        else:
+            return control
+
+class DotNetINotifyPropertyChanged(System.ComponentModel.INotifyPropertyChanged):
+    ''' implement INotifyPropertyChanged interface with python event class
+    '''
+    __namespace__ = "DotNetINotifyPropertyChanged"
+    def __init__(self):
+        super(DotNetINotifyPropertyChanged, self).__init__()
+        self.PropertyChanged, self._propertyChangedCaller = event.make_event()       
+    def add_PropertyChanged(self, value):
+        self.PropertyChanged += value
+    def remove_PropertyChanged(self, value):
+        self.PropertyChanged -= value
+    def OnPropertyChanged(self, propertyName):
+        if self.PropertyChanged != None:
+           self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
+
+class ViewModel(DotNetINotifyPropertyChanged):
+    __namespace__ = "ViewModel"
+    def __init__(self):
+        super(ViewModel,self).__init__()
+            # test code
+        self._inputText = "Line - in"
+        self._outputText = "Line - out"
+    @clr.clrproperty(str)
+    def inputText(self):
+        return self._inputText
+    @inputText.setter
+    def inputText(self,value):
+        self._inputText = value
+        self.OnPropertyChanged("inputText") 
+    @clr.clrproperty(str)
+    def outputText(self):
+        return self._outputText
+    @outputText.setter
+    def outputText(self,value):
+        self._outputText = value
+        self.OnPropertyChanged("outputText")
+    # test code
+
 # pyevent from IronPython
 class event(object):
     """Provides CLR event-like functionality for Python.  This is a public
@@ -336,6 +310,14 @@ class event(object):
     def make_caller(self):
         return event_caller(self)
 
+    @staticmethod
+    def make_event():
+        """Creates an event object tuple.  The first value in the tuple can be
+        exposed to allow external code to hook and unhook from the event.  The
+        second value can be used to raise the event and can be stored in a
+        private variable."""
+        res = event()
+        return (res, res.make_caller())
 class event_caller(object):
     """Provides CLR event-like functionality for Python.  This is the
     protected event caller that allows the owner to raise the event"""
@@ -346,8 +328,7 @@ class event_caller(object):
             
     def __call__(self, *args):
         for ev in self.event.handlers:
-            print ev, args
-            ev(args)
+                ev(*args)
 
     def __set__(self, val):
         raise ValueError, "cannot assign to an event, can only add or remove handlers"
@@ -357,10 +338,33 @@ class event_caller(object):
 
     def __get__(self, instance, owner):
         return self
-def make_event():
-    """Creates an event object tuple.  The first value in the tuple can be
-    exposed to allow external code to hook and unhook from the event.  The
-    second value can be used to raise the event and can be stored in a
-    private variable."""
-    res = event()
-    return (res, res.make_caller())
+
+class DotNetExpandoObject(System.Dynamic.ExpandoObject):
+    ''' Wrapper for ExpandoObject to allow pythonic access
+        ExpandoObject implements INotifyPropertyChanged for its properties
+    '''
+    def __init__(self):
+        super(DotNetExpandoObject,self).__init__()
+
+    def __getattr__(self,name):
+            obj = None
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            ret = wrapped.TryGetValue(name, obj)
+            if ret[0]:
+                return ret[1]
+            else:
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
+ 
+    def __setattr__(self,name,obj):
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            if wrapped.ContainsKey(name):
+                wrapped.set_Item(name, obj)
+            else:
+                wrapped.Add(name, obj)
+
+    def __delattr__(self, name):
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            if wrapped.Remove(name):
+                return
+            else:
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
