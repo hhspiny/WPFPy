@@ -3,28 +3,17 @@
 import clr, System
 import WPFPy
 
-class MyViewModel(WPFPy.DotNetINotifyPropertyChanged):
-    __namespace__ = "viewModel"
+class MyViewModel(WPFPy.DotNetExpandoObject):
     def __init__(self):
         super(MyViewModel,self).__init__()
-            # test code
-        self._inputText = "Line - in"
-        self._outputText = "Line - out"
-    @clr.clrproperty(str)
-    def inputText(self):
-        return self._inputText
-    @inputText.setter
-    def inputText(self,value):
-        self._inputText = value
-        self.OnPropertyChanged("inputText") 
-    @clr.clrproperty(str)
-    def outputText(self):
-        return self._outputText
-    @outputText.setter
-    def outputText(self,value):
-        self._outputText = value
-        self.OnPropertyChanged("outputText")
-    # test code
+        self.inputText = "Line - in"
+        self.outputText = "Line - out"
+        # register eventhandler for DataContext changed event -- after all data binding are initialized
+        self.addPropertyChanged(self.dataContextChanged)
+
+    def dataContextChanged(self,s,e):
+        if e.PropertyName == "inputText":
+            self.outputText = self.inputText
 
 class MyWindow(WPFPy.Window):
     def __init__(self, ownThread = False, attachThread = False, viewModel = None):
@@ -42,28 +31,17 @@ class MyWindow(WPFPy.Window):
 #        self.VM.outputText = "Changed"
             self.VM.outputText = self.VM.inputText + "\n" + self.window.Title
 
-    def initDataBinding(self):
-        super(MyWindow, self).initDataBinding()
-
-    def dataContextChanged(self, s, e):
-        super(MyWindow, self).dataContextChanged(s, e)
-        if e.PropertyName == "inputText":
-            self.dataContext.outputText = self.dataContext.inputText
-
 if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
      vm = MyViewModel()
-     def callback(s,e):
-          print "callback"
-
      w1 = MyWindow(ownThread=True, viewModel = vm)
      w1.changeWindowTitle("Window - 1")
 
      @WPFPy.Window.windowThread
      def getTitle(self):
         return self.window.Title
-     print getTitle(w1)
+#     print getTitle(w1)
 
      
      

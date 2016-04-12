@@ -100,15 +100,10 @@ class Window(System.Object):
         ''' To bind Window.DataContext to a class with INotifyPropertyChanged interface implemented
         ExpandoObject is also an option
         '''
-
         if self.VM == None:
-            self.VM = ViewModel()
-#           self.VM = DotNetExpandoObject()
+           self.VM = DotNetExpandoObject()
         self.window.DataContext = self.VM
         self.initDataBinding()
-        # register eventhandler for DataContext changed event -- after all data binding are initialized
-#        System.ComponentModel.INotifyPropertyChanged(self.VM).PropertyChanged += self.dataContextChanged
-        self.VM.PropertyChanged +=self.dataContextChanged
 
     def createEventMapping(self):
         ''' To auto map control events to method
@@ -142,12 +137,7 @@ class Window(System.Object):
         '''
         pass
     
-    def dataContextChanged(self,s,e):
-        ''' to be overriden, Window.DataContext property changed event process. need to be called last during window construction
-            identify the property changed by e.PropertyName
-        '''
-        pass
-        
+     
     def customWindowClosed(self,s,e):
         ''' to be overriden, customized window close event handler -- before thread shutdown 
         '''
@@ -231,6 +221,48 @@ class WindowControlSurrogate(System.Object):
         else:
             return control
 
+class DotNetExpandoObject(System.Dynamic.ExpandoObject):
+    ''' Wrapper for ExpandoObject to allow pythonic access, ExpandoObject implements INotifyPropertyChanged for its properties
+    '''
+    def __init__(self):
+        super(DotNetExpandoObject,self).__init__()
+
+    def addPropertyChanged(self,func):
+        ''' add a property changed handler method, similar to add_PropertyChanged in INotifyPropertyChanged interface '''
+        System.ComponentModel.INotifyPropertyChanged(self).PropertyChanged += func
+    def removePropertyChanged(self,func):
+        ''' remove a property changed handler method, similar to remove_PropertyChanged in INotifyPropertyChanged interface '''
+        System.ComponentModel.INotifyPropertyChanged(self).PropertyChanged -= func
+
+    def __getattr__(self,name):
+            obj = None
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            ret = wrapped.TryGetValue(name, obj)
+            if ret[0]:
+                return ret[1]
+            else:
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
+ 
+    def __setattr__(self,name,obj):
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            if wrapped.ContainsKey(name):
+                wrapped.set_Item(name, obj)
+            else:
+                wrapped.Add(name, obj)
+
+    def __delattr__(self, name):
+            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
+            if wrapped.Remove(name):
+                return
+            else:
+                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
+
+
+
+# ================================================================================================= #
+# the following were implemented to use native python class to inherit from INotifyPropertyChanged
+# interface. However, it does not work in python.net as the implemented methods in python gets lost
+# in its derived class. much less useful. 
 class DotNetINotifyPropertyChanged(System.ComponentModel.INotifyPropertyChanged):
     ''' implement INotifyPropertyChanged interface with python event class
     '''
@@ -245,7 +277,6 @@ class DotNetINotifyPropertyChanged(System.ComponentModel.INotifyPropertyChanged)
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged != None:
            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-
 # pyevent from IronPython
 class event(object):
     """Provides CLR event-like functionality for Python.  This is a public
@@ -317,32 +348,4 @@ class event_caller(object):
     def __get__(self, instance, owner):
         return self
 
-class DotNetExpandoObject(System.Dynamic.ExpandoObject):
-    ''' Wrapper for ExpandoObject to allow pythonic access
-        ExpandoObject implements INotifyPropertyChanged for its properties
-    '''
-    def __init__(self):
-        super(DotNetExpandoObject,self).__init__()
 
-    def __getattr__(self,name):
-            obj = None
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            ret = wrapped.TryGetValue(name, obj)
-            if ret[0]:
-                return ret[1]
-            else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
- 
-    def __setattr__(self,name,obj):
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            if wrapped.ContainsKey(name):
-                wrapped.set_Item(name, obj)
-            else:
-                wrapped.Add(name, obj)
-
-    def __delattr__(self, name):
-            wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
-            if wrapped.Remove(name):
-                return
-            else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
