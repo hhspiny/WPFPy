@@ -3,9 +3,10 @@
 #   .Net Attributes/Method starts with capital letter
 #   Python attributes/methods follow conventional way of first letter lower case
 
+# This does not work as one can not derive class from class derived from .NET without losing any method overriding
+
 import clr, System
 clr.AddReference(r"wpf\PresentationFramework")
-
 
 class Window(System.Object):
     '''Wrapper class for Systems.Window.Window class. 
@@ -244,29 +245,6 @@ class DotNetINotifyPropertyChanged(System.ComponentModel.INotifyPropertyChanged)
     def OnPropertyChanged(self, propertyName):
         if self.PropertyChanged != None:
            self._propertyChangedCaller(self, System.ComponentModel.PropertyChangedEventArgs(propertyName))
-
-class ViewModel(DotNetINotifyPropertyChanged):
-    __namespace__ = "ViewModel"
-    def __init__(self):
-        super(ViewModel,self).__init__()
-            # test code
-        self._inputText = "Line - in"
-        self._outputText = "Line - out"
-    @clr.clrproperty(str)
-    def inputText(self):
-        return self._inputText
-    @inputText.setter
-    def inputText(self,value):
-        self._inputText = value
-        self.OnPropertyChanged("inputText") 
-    @clr.clrproperty(str)
-    def outputText(self):
-        return self._outputText
-    @outputText.setter
-    def outputText(self,value):
-        self._outputText = value
-        self.OnPropertyChanged("outputText")
-    # test code
 
 # pyevent from IronPython
 class event(object):

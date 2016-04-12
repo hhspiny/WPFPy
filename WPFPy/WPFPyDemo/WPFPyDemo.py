@@ -44,8 +44,6 @@ class MyWindow(WPFPy.Window):
 
     def initDataBinding(self):
         super(MyWindow, self).initDataBinding()
-#        self.dataContext.inputText = "Line - 1"
-#        self.dataContext.outputText = "Init Output"
 
     def dataContextChanged(self, s, e):
         super(MyWindow, self).dataContextChanged(s, e)
@@ -55,21 +53,17 @@ class MyWindow(WPFPy.Window):
 if __name__ == '__main__':
 #    Application().Run(MyWindow())
 
-     vm = WPFPy.ViewModel()
+     vm = MyViewModel()
      def callback(s,e):
           print "callback"
 
-     vm.add_PropertyChanged(callback)
-#     w1 = MyWindow(ownThread=True, viewModel = vm)
-#     w1.changeWindowTitle("Window - 1")
-
-#     w2 = MyWindow(ownThread=True)
-#     w2.changeWindowTitle("Window - 2")
+     w1 = MyWindow(ownThread=True, viewModel = vm)
+     w1.changeWindowTitle("Window - 1")
 
      @WPFPy.Window.windowThread
      def getTitle(self):
         return self.window.Title
-#     print getTitle(w1)
+     print getTitle(w1)
 
      
      
