@@ -50,10 +50,21 @@ class baseNB(baseNA):
     __namespace__ = "System"
     def __init__(self):
         super(baseNB,self).__init__()
-bna = baseNA()
-print bna.ToString()
-print bna._Random__ToString()
-bnb = baseNB()
-print bnb.ToString()
-print bnb._baseNA__ToString()
-print bnb._Random__ToString()
+
+def testInherit():
+    bna = baseNA()
+    print bna.ToString()
+    print bna._Random__ToString()
+    bnb = baseNB()
+    print bnb.ToString()
+    print bnb._baseNA__ToString()
+    print bnb._Random__ToString()
+
+class testAttr(System.Object):
+    def __init__(self):
+        super(testAttr,self).__init__()
+#    def __getattr__(self,name):
+#        print "__getattr__"
+    def __setattr__(self,name,value):
+        print "__setattr__"
+        super(testAttr,self).__setattr__(name,value)

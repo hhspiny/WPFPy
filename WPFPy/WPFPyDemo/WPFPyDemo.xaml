@@ -4,7 +4,7 @@
        Title="WPFPyDemo" Height="300" Width="480"> 
        <Grid>
         <Button x:Name="display_button" Content="Button" HorizontalAlignment="Left" Margin="189,226,0,0" VerticalAlignment="Top" Width="75" Click="display_button_Click"/>
-        <TextBox x:Name="textBox_input" HorizontalAlignment="Left" Height="23" Margin="176,27,0,0" TextWrapping="Wrap" Text="{Binding inputText, FallbackValue=InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120"/>
-        <Label x:Name="outputLabel" Content="{Binding outputText, FallbackValue=outputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="148,90,0,0" VerticalAlignment="Top" Width="172" Height="85"/>
+        <TextBox x:Name="textBox_input" HorizontalAlignment="Left" Height="23" Margin="176,27,0,0" TextWrapping="Wrap" Text="{Binding VMinputText, FallbackValue=InputText, Mode=TwoWay, NotifyOnTargetUpdated=True, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120" LostFocus="textBox_input_LostFocus"/>
+        <Label x:Name="outputLabel" Content="{Binding VMoutputText, FallbackValue=outputText}" HorizontalAlignment="Left" Margin="148,90,0,0" VerticalAlignment="Top" Width="172" Height="85"/>
     </Grid>
 </Window> 

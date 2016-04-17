@@ -223,6 +223,7 @@ class WindowControlSurrogate(System.Object):
 
 class DotNetExpandoObject(System.Dynamic.ExpandoObject):
     ''' Wrapper for ExpandoObject to allow pythonic access, ExpandoObject implements INotifyPropertyChanged for its properties
+        Only attributes with pre-fix EO or VM will be saved into ExpandoObject, rest stay as python class attributes
     '''
     def __init__(self):
         super(DotNetExpandoObject,self).__init__()
@@ -235,27 +236,36 @@ class DotNetExpandoObject(System.Dynamic.ExpandoObject):
         System.ComponentModel.INotifyPropertyChanged(self).PropertyChanged -= func
 
     def __getattr__(self,name):
+        if name[0:2] != "EO" and name[0:2] != "VM":    
+            raise AttributeError, "%s instance has no attribute '%s'" %(type(self).__name__, name)
+        else:
             obj = None
             wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             ret = wrapped.TryGetValue(name, obj)
             if ret[0]:
                 return ret[1]
             else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
+                raise AttributeError, "%s instance's ExpandoObject has no attribute '%s'" % (type(self).__name__, name)
  
-    def __setattr__(self,name,obj):
+    def __setattr__(self,name,value):
+        if name[0:2] != "EO" and name[0:2] != "VM":
+            super(DotNetExpandoObject,self).__setattr__(name,value)
+        else:
             wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             if wrapped.ContainsKey(name):
-                wrapped.set_Item(name, obj)
+                wrapped.set_Item(name, value)
             else:
-                wrapped.Add(name, obj)
+                wrapped.Add(name, value)
 
     def __delattr__(self, name):
+        if name[0:2] != "EO" and name[0:2] != "VM":
+            del self.__dict__[name]
+        else:
             wrapped = System.Collections.Generic.IDictionary[System.String, System.Object](self)
             if wrapped.Remove(name):
                 return
             else:
-                raise AttributeError, "%s instance has no attribute '%s'" % ("DotNetExpandoObject", name)
+                raise AttributeError, "%s instance's ExpandoObject has no attribute '%s'" % (type(self).__name__, name)
 
 
 
