@@ -1,10 +1,16 @@
 ﻿<Window 
        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Name="WPFPyDemo_Window" 
-       Title="WPFPyDemo" Height="300" Width="480"> 
-       <Grid>
-        <Button x:Name="display_button" Content="Button" HorizontalAlignment="Left" Margin="189,226,0,0" VerticalAlignment="Top" Width="75" Click="display_button_Click"/>
-        <TextBox x:Name="textBox_input" HorizontalAlignment="Left" Height="23" Margin="176,27,0,0" TextWrapping="Wrap" Text="{Binding VMinputText, FallbackValue=InputText, Mode=TwoWay, NotifyOnTargetUpdated=True, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120" LostFocus="textBox_input_LostFocus"/>
-        <Label x:Name="outputLabel" Content="{Binding VMoutputText, FallbackValue=outputText}" HorizontalAlignment="Left" Margin="148,90,0,0" VerticalAlignment="Top" Width="172" Height="85"/>
+       Title="WPFPyDemo" Height="600" Width="800">
+    <Grid>
+        <Button x:Name="display_button" Content="Button" HorizontalAlignment="Left" Margin="425,337,0,0" VerticalAlignment="Top" Width="75" Click="display_button_Click"/>
+        <TextBox x:Name="textBox_input" HorizontalAlignment="Left" Height="23" Margin="63,76,0,0" TextWrapping="Wrap" Text="{Binding VMinputText, FallbackValue=InputText, Mode=TwoWay, NotifyOnTargetUpdated=True, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120" LostFocus="textBox_input_LostFocus"/>
+        <Label x:Name="outputLabel" Content="{Binding VMoutputText, FallbackValue=outputText}" HorizontalAlignment="Left" Margin="63,136,0,0" VerticalAlignment="Top" Width="172" Height="85"/>
+        <Border BorderBrush="Black" BorderThickness="5" HorizontalAlignment="Left" Height="250" Margin="290,42,0,0" VerticalAlignment="Top" Width="350" CornerRadius="25" Cursor="Cross">
+            <Border.Effect>
+                <DropShadowEffect/>
+            </Border.Effect>
+        </Border>
+        <Canvas x:Name="outputCanvas" HorizontalAlignment="Left" Height="164" Margin="44,221,0,0" VerticalAlignment="Top" Width="201"/>
     </Grid>
 </Window> 

@@ -2,10 +2,10 @@
 #from System.Windows import Application, Window
 import clr, System
 import WPFPy
+
 # windows class has to be the first class for VS to add event automatically
 class MyWindow(WPFPy.Window):
     def __init__(self, ownThread = False, attachThread = False, viewModel = None):
-#        wpf.LoadComponent(self, 'WPFPyDemo.xaml')
         super(MyWindow, self).__init__("WPFPyDemo.xaml", 
                 ownThread = ownThread, attachThread=attachThread,
                 viewModel = viewModel)   
@@ -36,12 +36,10 @@ class MyViewModel(WPFPy.DotNetExpandoObject):
             self.VMoutputText = self.VMinputText
 
 if __name__ == '__main__':
-#    Application().Run(MyWindow())
-
      vm = MyViewModel()
      w1 = MyWindow(ownThread=True, viewModel = vm)
-     w1.changeWindowTitle("Window - 1")
 
+     # define a function to directly access window's attributes from main thread
      @WPFPy.Window.windowThread
      def getTitle(self):
         return self.window.Title
