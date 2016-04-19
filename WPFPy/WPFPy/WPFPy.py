@@ -267,7 +267,20 @@ class DotNetExpandoObject(System.Dynamic.ExpandoObject):
             else:
                 raise AttributeError, "%s instance's ExpandoObject has no attribute '%s'" % (type(self).__name__, name)
 
+class ViewModel(DotNetExpandoObject):
+    def __init__(self):
+        super(ViewModel,self).__init__()
+        self.initData()
+        # register eventhandler for DataContext changed event -- after all data binding are initialized
+        self.addPropertyChanged(self.dataContextChanged)
 
+    def initData(self):
+        ''' to be overriden, initialize data context'''
+        pass
+
+    def dataContextChanged(self,s,e):
+        ''' to be overriden, a default catch all data context change notification
+        '''
 
 # ================================================================================================= #
 # the following were implemented to use native python class to inherit from INotifyPropertyChanged

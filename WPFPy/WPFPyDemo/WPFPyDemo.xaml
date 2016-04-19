@@ -10,7 +10,8 @@
             <Border.Effect>
                 <DropShadowEffect/>
             </Border.Effect>
+            <ListBox x:Name="listBox" ItemsSource="{Binding VMlistBox}" Margin="69.2,359.2,63.6,-259.2" IsManipulationEnabled="True"/>
         </Border>
-        <Canvas x:Name="outputCanvas" HorizontalAlignment="Left" Height="164" Margin="44,221,0,0" VerticalAlignment="Top" Width="201"/>
+        <Canvas x:Name="outputCanvas" HorizontalAlignment="Left" Height="164" Margin="63,337,0,0" VerticalAlignment="Top" Width="201"/>
     </Grid>
 </Window> 

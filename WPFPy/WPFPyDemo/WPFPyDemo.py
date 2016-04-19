@@ -23,15 +23,18 @@ class MyWindow(WPFPy.Window):
         self.VM.VMoutputText = "lost focus"
    
 
-class MyViewModel(WPFPy.DotNetExpandoObject):
+class MyViewModel(WPFPy.ViewModel):
     def __init__(self):
         super(MyViewModel,self).__init__()
+
+    def initData(self):
+        super(MyViewModel,self).initData()
         self.VMinputText = "Line - in"
         self.VMoutputText = "Line - out"
-        # register eventhandler for DataContext changed event -- after all data binding are initialized
-        self.addPropertyChanged(self.dataContextChanged)
+        self.VMlistBox = ["item-1", "item-2"]
 
     def dataContextChanged(self,s,e):
+        super(MyViewModel,self).dataContextChanged(s,e)
         if e.PropertyName == "VMinputText":
             self.VMoutputText = self.VMinputText
 
